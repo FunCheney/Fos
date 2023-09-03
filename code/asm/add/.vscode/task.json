@@ -1,0 +1,43 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build", //调用make编译C代码文件
+            "type": "shell",
+            "command": "make", //执行make命令
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+        },
+        {
+            "label": "Run RISCV-QEMU",//调用QEMU以用户模式执行RISC-V平台的程序
+            "type": "shell",
+            "isBackground": true,//让QEMU在后台运行
+            "command": "echo Starting RISCV-QEMU&qemu-riscv32 -g 1234 ./*.elf", //-g 1234表示打开1234端口等待GDB的连接，进行调试，./*.elf表示
+                                                                                //编译好的RISC-V可执行程序，即main.elf
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "^(Starting RISCV-QEMU)",
+                    "line": 1,
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^(Starting RISCV-QEMU)",
+                    "endsPattern": "^(Starting RISCV-QEMU)"
+                }
+            }
+            
+        },
+        {
+            "label": "Build and run",//编译并运行
+            "dependsOrder":"sequence",//任务的依赖顺序
+            "dependsOn": [
+                "Build",              //先执行编译
+                "Run RISCV-QEMU",     //然后调用QEMU运行
+            ]
+        }
+    ]
+}

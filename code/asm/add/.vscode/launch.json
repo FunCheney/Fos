@@ -1,0 +1,25 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "name": "(gdb) 启动",
+            "type": "cppdbg",
+            "request": "launch",//文件名
+            "miDebuggerServerAddress": "127.0.0.1:1234",//GDB连接的地址和端口，就是连接到本地运行的QEMU
+            "program": "${workspaceFolder}/main.elf", //GDB调试的可执行程序名称，里面有代码和符号等信息
+            "args": [],
+            "stopAtEntry": false,  //调试时是否停止在程序的入口点处
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false, //调试时是否使用vscode集成的终端
+            "miDebuggerPath": "/opt/riscv/gcc/bin/riscv64-unknown-elf-gdb", //RISC-V工具链中的对应于RISC-V平台的GDB调试器
+            "MIMode": "gdb",
+            "miDebuggerArgs": "-q -x ./gdbinit", //传递给GDB的参数
+            "preLaunchTask": "Build and run" //运行GDB之前，先执行tasks.json文件中的"Build and run"操作，名称一定要与tasks.json文件中保持一致
+        }
+    ]
+}
