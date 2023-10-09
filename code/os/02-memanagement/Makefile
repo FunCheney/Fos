@@ -1,5 +1,9 @@
 include ../../common.mk
 
+SRCS_ASM = \
+	   start.S \
+	   mem.S \
+
 SRCS_C = \
 	 kernel.c \
 	 uart.c \
