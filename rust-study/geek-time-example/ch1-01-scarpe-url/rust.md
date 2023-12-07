@@ -21,7 +21,7 @@ Rust
 
 [ Get Started ](/learn/get-started)
 
-[Version 1.73.0](https://blog.rust-lang.org/2023/10/05/Rust-1.73.0.html)
+[Version 1.74.0](https://blog.rust-lang.org/2023/11/16/Rust-1.74.0.html)
 
  Why Rust?
 ----------
@@ -175,7 +175,7 @@ Language English (en-US)Español (es)Français (fr)Italiano (it)日本語 (ja)Po
 
 #### Social ####
 
-[![twitter logo](/static/images/twitter.svg "Twitter")](https://twitter.com/rustlang) [![youtube logo](/static/images/youtube.svg "YouTube")](https://www.youtube.com/channel/UCaYhcUwRBNscFNUKTjgPFiA) [![discord logo](/static/images/discord.svg "Discord")](https://discord.gg/rust-lang) [![github logo](/static/images/github.svg "GitHub")](https://github.com/rust-lang)
+[![Mastodon](/static/images/mastodon.svg "Mastodon")](https://social.rust-lang.org/@rust) [![twitter logo](/static/images/twitter.svg "Twitter")](https://twitter.com/rustlang) [![youtube logo](/static/images/youtube.svg "YouTube")](https://www.youtube.com/channel/UCaYhcUwRBNscFNUKTjgPFiA) [![discord logo](/static/images/discord.svg "Discord")](https://discord.gg/rust-lang) [![github logo](/static/images/github.svg "GitHub")](https://github.com/rust-lang)
 
  Maintained by the Rust Team. See a bug?[File an issue!](https://github.com/rust-lang/www.rust-lang.org/issues/new/choose)
 
