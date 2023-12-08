@@ -1,1 +1,0 @@
-/Users/fanchen/project/MyProjects/Fos/rust-study/geek-time-example/ch7-owner-ship-01/target/debug/ch7-owner-ship-01: /Users/fanchen/project/MyProjects/Fos/rust-study/geek-time-example/ch7-owner-ship-01/src/main.rs
