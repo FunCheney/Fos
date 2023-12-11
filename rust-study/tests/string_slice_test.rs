@@ -24,3 +24,22 @@ fn slice_to_string() {
     let s3 = s.to_owned();
     println!("s3 {}", s3);
 }
+
+#[test]
+fn slice_02() {
+    // [u8] 是字节串切片，大小是可以动态变化的
+    // &[u8] 是对字节串切片的引用, 即 切片引用，与 &str 是类似的
+    // &[u8; N] 是对数组 u8 长度为 N  的引用
+    // Vec<u8> 是 u8 类型的动态数组, 与 String 类似，这是一种具有所有权的类型
+
+    let a_vec: Vec<u8> = vec![1, 2, 4, 3, 5, 6, 7, 8];
+
+    let a_slice: &[u8] = &a_vec[0..6];
+    println!(" a_slice {:?}", a_slice);
+
+    let another_vec = a_slice.to_vec();
+    println!(" another {:?}", another_vec);
+    let another_vec_2 = a_slice.to_owned();
+    println!(" another_vec_2 {:?}", another_vec_2);
+
+}
