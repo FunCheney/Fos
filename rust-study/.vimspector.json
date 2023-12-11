@@ -1,0 +1,25 @@
+{
+  "configurations": {
+    "Launch": {
+      "adapter": "CodeLLDB",
+      "configuration": {
+        "request": "launch",
+        "type": "lldb",
+        "name": "Debug Rust",
+        "program": "${workspaceRoot}/target/debug/rust-study",
+        "args": [],
+        "cwd": "${workspaceRoot}",
+        "sourceLanguages": ["rust"],
+        "setupCommands": [
+          {
+            "description": "Enable pretty-printing for lldb",
+            "text": "target stop-hook add -o 'expr -o -g true -- std::ptr::write(std::ptr::read::<usize>(this.raw.0 as *const _), true)'",
+            "ignoreFailures": true
+          }
+        ] 
+      }
+    }
+  }
+}
+
+
