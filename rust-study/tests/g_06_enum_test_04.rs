@@ -48,3 +48,28 @@ fn test_04() {
     }
 }
 
+// ref 关键词
+#[derive(Debug)]
+struct User {
+    name: String,
+    age: u32,
+    student: bool,
+}
+
+#[test]
+fn test_02() {
+    let a = User {
+        name: String::from("mike"),
+        age: 12,
+        student: true
+    };
+    let User {
+        ref name, // 这里是一个 ref
+        age,
+        student
+    } = a;
+
+    println!("{}", name);
+    println!("{}", age);
+    println!("{}", student);
+}
