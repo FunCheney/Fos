@@ -1,4 +1,11 @@
 /// trait 是一种约束
+///
+/// trait TraitA {};
+/// struct Atype;
+/// impl traitA for Atype {}
+///
+/// 一个 trait 在一个类型上只能实现一次
+
 struct Point<T> {
     x: T,
     y: T,
@@ -57,7 +64,7 @@ impl Sport for FootBall {
     }
 
     fn play_some() -> Self {
-        todo!()
+        Self  //就指代 Football 这个类型。
     }
 }
 
