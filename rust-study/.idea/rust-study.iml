@@ -7,10 +7,12 @@
       <sourceFolder url="file://$MODULE_DIR$/httpie/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/thumbor/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/getinfo/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/myallocator/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/httpie/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/thumbor/target" />
       <excludeFolder url="file://$MODULE_DIR$/getinfo/target" />
+      <excludeFolder url="file://$MODULE_DIR$/myallocator/target" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
