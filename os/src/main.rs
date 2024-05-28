@@ -1,15 +1,28 @@
+//! call [println!] display Hello
+
+#![deny(warnings)]
+
 #![no_main]
 #![no_std]
-mod lang_items;
+#![feature(panic_info_message)]
 
-use core::arch::global_asm;
+#[macro_use]
+mod console;
+mod lang_items;
+mod sbi;
+
+use core::{arch::global_asm};
+
 
 global_asm!(include_str!("entry.asm"));
 
-#![no_mangle]
+#[no_mangle]
 fn rust_main() -> !{
     clear_bss();
-    loop {}
+
+    println!("hello, gjh os");
+
+    panic!("Shutdown machine");
 }
 
 fn clear_bss() {
