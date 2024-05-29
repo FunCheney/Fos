@@ -5,8 +5,11 @@ struct Stdout;
 
 impl Write for Stdout {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        for c in s.chars() {
-            console_putchar(c as usize);
+        //for c in s.chars() {
+        //    console_putchar(c as usize);
+        //}
+        for b in s.bytes() {
+            console_putchar(b as usize);
         }
         Ok(())
     }

@@ -21,6 +21,7 @@ fn rust_main() -> !{
     clear_bss();
 
     println!("hello, gjh os");
+    println!("您好, os");
 
     panic!("Shutdown machine");
 }
