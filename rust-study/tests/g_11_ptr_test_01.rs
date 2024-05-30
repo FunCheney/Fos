@@ -66,3 +66,13 @@ fn foo_04() -> Box<u32> {
 fn test_04() {
     let _p = foo_04();
 }
+
+#[test]
+fn test_05() {
+    let a = 5;
+    let b = Box::new(a);
+    println!("{a}");
+    println!("{:p}", &b);
+    println!("{}", std::mem::size_of_val(&b));
+    print!("{}", std::mem::size_of_val(&a));
+}

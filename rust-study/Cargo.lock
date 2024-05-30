@@ -3,5 +3,9 @@
 version = 3
 
 [[package]]
+name = "guessing_game"
+version = "0.1.0"
+
+[[package]]
 name = "rust-study"
 version = "0.1.0"

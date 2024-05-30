@@ -10,12 +10,8 @@ enum Shape {
 fn test_01() {
     let shape_a = Shape::Rectangle;
     let ret = match shape_a {
-        Shape::Rectangle => {
-            1
-        }
-        _ => {
-            10
-        }
+        Shape::Rectangle => 1,
+        _ => 10,
     };
     println!("{}", ret);
 }
@@ -28,7 +24,7 @@ fn test_03() {
         1 => println!("1"),
         2 | 3 | 4 | 5 => println!("12344fiif"),
         6..=10 => println!("(6,10]"),
-        _ =>  println!("other"),
+        _ => println!("other"),
     }
 }
 
@@ -43,7 +39,7 @@ fn test_04() {
     let shape_a = Shape::Rectangle;
     if let Shape::Rectangle = shape_a {
         println!("1")
-    }else {
+    } else {
         println!("10")
     }
 }
@@ -61,12 +57,12 @@ fn test_02() {
     let a = User {
         name: String::from("mike"),
         age: 12,
-        student: true
+        student: true,
     };
     let User {
         ref name, // 这里是一个 ref
         age,
-        student
+        student,
     } = a;
 
     println!("{}", name);
