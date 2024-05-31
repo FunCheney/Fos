@@ -1,11 +1,7 @@
-workspace = { members = ["guessing_game", "rust_lang_book"] }
 [package]
-name = "rust-study"
+name = "rust_lang_book"
 version = "0.1.0"
 edition = "2021"
-
-[profile.dev]
-debug = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

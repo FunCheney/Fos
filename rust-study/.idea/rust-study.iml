@@ -8,6 +8,9 @@
       <sourceFolder url="file://$MODULE_DIR$/thumbor/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/getinfo/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/myallocator/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/guessing_game/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rust_lang_book/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rust_lang_book/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/httpie/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/thumbor/target" />
