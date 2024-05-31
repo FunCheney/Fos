@@ -13,3 +13,13 @@ fn test_01() {
     print!("the value is: {y}");
 }
 
+#[test]
+fn test_02() {
+    let x = 5;
+    println!("the value is: {x}");
+    // 通过 let x 创建一个新变量 x， 获取初始值 + 1
+    let x = x + 1;
+    println!("the value is: {x}");
+
+}
+
