@@ -1,14 +1,13 @@
 # Building
 TARGET := riscv64gc-unknown-none-elf
 MODE := release
-KERNEL_ELF := traget/${TARGET}/$(MODE)/os
-KERNEL_BIN := $(KERNEL_ELF).bin 
-DISAM_TMP := traget/$(TARGET)/$(MODE)/asm
+KERNEL_ELF := target/$(TARGET)/$(MODE)/os
+KERNEL_BIN := $(KERNEL_ELF).bin
+DISASM_TMP := target/$(TARGET)/$(MODE)/asm
 
-# Building mode argumet
+# Building mode argument
 ifeq ($(MODE), release)
 	MODE_ARG := --release
-
 endif
 
 # BOARD
@@ -24,7 +23,7 @@ OBJDUMP := rust-objdump --arch-name=riscv64
 OBJCOPY := rust-objcopy --binary-architecture=riscv64
 
 # Disassembly
-DISAM ?= -x
+DISASM ?= -x
 
 build: env $(KERNEL_BIN)
 
