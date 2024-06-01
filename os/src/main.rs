@@ -9,7 +9,6 @@
 use core::arch::global_asm;
 use log::*;
 
-
 #[macro_use]
 mod console;
 mod lang_items;
@@ -71,8 +70,8 @@ fn rust_main() -> !{
         ebss as usize
         );
 
+    sbi::shutdown(false);
 
-    panic!("Shutdown machine");
 }
 
 fn clear_bss() {
