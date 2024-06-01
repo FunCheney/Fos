@@ -1,9 +1,10 @@
 
-use log::{self, Level, LevelFilter, Metadata, Record};
+use log::{self, Level, LevelFilter, Log, Metadata, Record};
 
 struct SimpleLogger;
 
-impl log::Log for SimpleLogger {
+impl Log for SimpleLogger {
+
 
     fn enabled(&self, _metadata: &Metadata) -> bool {
 
@@ -14,6 +15,7 @@ impl log::Log for SimpleLogger {
 
     fn log(&self, record: &Record){
         if !self.enabled(record.metadata()){
+            println!("log false");
             return;
         }
 
@@ -48,7 +50,7 @@ pub fn init() {
             Some("INFO") => LevelFilter::Info,
             Some("DEBUG") => LevelFilter::Debug,
             Some("TRACE") => LevelFilter::Trace,
-            _=> LevelFilter::Off
+            _=> LevelFilter::Debug
 
         });
     }

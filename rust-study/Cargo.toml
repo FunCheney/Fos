@@ -1,4 +1,5 @@
-workspace = { members = ["guessing_game"] }
+workspace = { members = ["getinfo","httpie","myallocator","thumbor",
+    "guessing_game", "rust_by_example", "rust_lang_book"] }
 [package]
 name = "rust-study"
 version = "0.1.0"
