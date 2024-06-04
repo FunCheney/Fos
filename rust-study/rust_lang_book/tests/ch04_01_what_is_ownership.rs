@@ -64,6 +64,39 @@ fn test_04_move() {
     //    |     println!("s1: {s1}, s2: {s2}");
     //    |                   ^^^^ value borrowed here after move
 }
+
+#[test]
+fn test_05_clone() {
+    let s = String::from("hello");
+    let s1 = s.clone();
+
+    println!("s {s}, s1 {s1}");
+}
+
+/// 下面这段代码，没有使用到 clone
+/// 但是 x 依然有效，没有被移动到 y 中
+/// 原因是像整型这样的在编译时已知大小的类型被整个存储在栈上，
+/// 所以拷贝其实际的值是快速的。这意味着没有理由在创建变量 y 后使 x 无效
+#[test]
+fn test_06_copy() {
+    let x = 5;
+    let y = x;
+
+    println!("x = {}, y = {}", x, y);
+}
+
+/// Rust 有一个叫做 Copy trait 的特殊注解，可以用在类似整型这样的存储在栈上的类型上
+/// 如果一个类型实现了 Copy trait，那么一个旧的变量在将其赋值给其他变量后仍然可用。
+/// Rust 不允许自身或其任何部分实现了 Drop trait 的类型使用 Copy trait。
+/// 如果我们对其值离开作用域时需要特殊处理的类型使用 Copy 注解，将会出现一个编译时错误。
+/// 任何一组简单标量值的组合都可以实现 Copy，任何不需要分配内存或某种形式资源的类型都可以实现 Copy
+///     所有整数类型，比如 u32。
+///     布尔类型，bool，它的值是 true 和 false。
+///     所有浮点数类型，比如 f64。
+///     字符类型，char。
+///     元组，当且仅当其包含的类型也都实现 Copy 的时候。比如，(i32, i32) 实现了 Copy，但 (i32, String) 就没有。
+
+
 #[test]
 fn test_owner_ship_fun() {
     let s = String::from("hello");  // s 进入作用域
