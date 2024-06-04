@@ -2,3 +2,5 @@ target/*
 .idea
 .idea/*
 httpie/target
+target
+Cargo.lock
