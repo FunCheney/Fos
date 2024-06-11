@@ -1,5 +1,5 @@
 [package]
-name = "user_lib"
+name = "user"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,3 +8,4 @@ riscv = {git = "https://github.com/rcore-os/riscv", features= ["inline-asm"]}
 
 [proflie.release]
 debug = true
+opt-level = 1
