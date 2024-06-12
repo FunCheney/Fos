@@ -1,5 +1,5 @@
 workspace = { members = ["getinfo","httpie","myallocator","thumbor",
-    "guessing_game", "rust_by_example", "rust_lang_book"] }
+    "guessing_game", "rust_by_example", "rust_lang_book", "minigrep"] }
 [package]
 name = "rust-study"
 version = "0.1.0"
