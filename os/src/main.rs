@@ -18,6 +18,7 @@ mod logging;
 
 
 global_asm!(include_str!("entry.asm"));
+global_asm!(include_str!("link_app.S"));
 
 #[no_mangle]
 fn rust_main() -> !{
