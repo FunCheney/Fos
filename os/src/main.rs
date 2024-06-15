@@ -1,7 +1,5 @@
 //! call [println!] display Hello
-
 #![deny(warnings)]
-
 #![no_main]
 #![no_std]
 #![feature(panic_info_message)]
@@ -11,10 +9,13 @@ use log::*;
 
 #[macro_use]
 mod console;
+pub mod batch;
 mod lang_items;
 mod sbi;
 mod logging;
-
+mod sync;
+pub mod syscall;
+pub mod trap;
 
 
 global_asm!(include_str!("entry.asm"));
@@ -70,8 +71,11 @@ fn rust_main() -> !{
         sbss as usize,
         ebss as usize
         );
+    trap::init();
 
-    sbi::shutdown(false);
+    batch::init();
+
+    batch::run_next_app();
 
 }
 
