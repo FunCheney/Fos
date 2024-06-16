@@ -38,7 +38,6 @@ pub fn sys_write(fd: usize, buffer: &[u8]) -> isize {
 /// 功能: 退出应用程序并将返回值告知批处理系统
 /// 参数: 'exit_code' 表示应用程序的返回值 
 /// 返回值: 该系统调用不应该返回
-pub fn sys_exit(exit_code: i32) -> ! {
-    syscall(SYSCALL_EXIT, [exit_code as usize, 0, 0]);
-    panic!("sys_exit never return");
+pub fn sys_exit(exit_code: i32) -> isize {
+    syscall(SYSCALL_EXIT, [exit_code as usize, 0, 0])
 }
