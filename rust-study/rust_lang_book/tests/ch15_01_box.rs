@@ -20,3 +20,13 @@ fn test_01() {
 
 /// Box 允许创建递归类型
 /// 递归类型的值可以拥有一个同类型的值作为启值的一部分
+enum List {
+    Cons(i32, Box<List>),
+    Nil,
+}
+use crate::List::{Cons, Nil};
+
+#[test]
+fn test_02() {
+    let list = Cons(1, Box::new(Cons(2, Box::new(Cons(3, Box::new(Nil))))));
+}
