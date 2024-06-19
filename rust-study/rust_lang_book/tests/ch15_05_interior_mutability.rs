@@ -1,3 +1,7 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+use crate::List::{Cons, Nil};
+
 /// 内部可变性 （Interior mutability）是 rust 的一种设计模式，它允许你在有不可变引用时也可以改变数据，这通常是借用规则不允许的。
 /// 为了改变数据，该模式在数据结构中使用 unsafe 代码来模糊 Rust 通常的可变性和借用规则
 /// 不安全代码表明，我们在手动检查这些规则，而不是让编译器帮我们检查
@@ -34,4 +38,106 @@
     编译器中的借用检查器允许内部可变性并相应地在运行时检查借用规则。如果违反了这些规则，会出现 panic 而不是编译错误。
  */
 
+pub trait Messenger {
+    fn send(&self, msg: &str);
+}
 
+pub struct LimitTracker<'a, T: Messenger> {
+    messenger: &'a T,
+    value: usize,
+    max: usize,
+}
+
+impl <'a, T> LimitTracker<'a, T>
+where T: Messenger {
+    pub fn new(messenger: &'a T, max: usize) -> LimitTracker<'a, T> {
+        LimitTracker {
+            messenger,
+            value: 0,
+            max,
+        }
+    }
+
+    pub fn set_value(&mut self, value: usize) {
+        self.value = value;
+        let percentage_of_max = self.value as f64 / self.max as f64;
+
+        if percentage_of_max >= 1.0 {
+            self.messenger.send("Error: You are over your quota!");
+        } else if percentage_of_max >= 0.9 {
+            self.messenger
+                .send("Urgent warning: You've used up over 90% of your quota!");
+        } else if percentage_of_max >= 0.75 {
+            self.messenger
+                .send("Warning: You've used up over 75% of your quota!");
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
+    use super::*;
+
+    struct MockMessenger {
+        // 这中写法编译不通过
+        // sent_message: Vec<String>,
+        sent_message: RefCell<Vec<String>>,
+    }
+
+    impl MockMessenger {
+        fn new() -> MockMessenger {
+            MockMessenger {
+                sent_message: RefCell::new(vec![]),
+            }
+        }
+    }
+
+    impl Messenger for MockMessenger {
+        fn send(&self, msg: &str) {
+            self.sent_message.borrow_mut().push(String::from(msg));
+        }
+
+    }
+
+    #[test]
+    fn it_sends_an_over_75_percent_warning_message() {
+        let mock_messenger = MockMessenger::new();
+        let mut limit_tracker = LimitTracker::new(&mock_messenger, 100);
+
+        limit_tracker.set_value(80);
+
+        assert_eq!(mock_messenger.sent_message.borrow().len(), 1);
+    }
+}
+
+/// 当我们创建不可变和可变引用时分别采用 &, &mut
+/// 对于 RefCell<T> 来说，则是 borrow 和 borrow_mut 方法
+/// borrow 方法返回 Ref<T> 类型的智能指针，borrow_mut 方法返回 RefMut<T> 类型的智能指针。
+/// 这两个类型都实现了 Deref，所以可以当作常规引用对待。
+// RefCell<T> 记录当前有多少个活动的 Ref<T> 和 RefMut<T> 智能指针。
+// 每次调用 borrow，RefCell<T> 将活动的不可变借用计数加一。
+// 当 Ref<T> 值离开作用域时，不可变借用计数减一。
+// 就像编译时借用规则一样，RefCell<T> 在任何时候只允许有多个不可变借用或一个可变借用。
+
+#[derive(Debug)]
+enum List {
+    Cons(Rc<RefCell<i32>>, Rc<List>),
+    Nil,
+}
+
+#[test]
+fn test_03() {
+    let value = Rc::new(RefCell::new(5));
+
+    let a = Rc::new(Cons(Rc::clone(&value), Rc::new(Nil)));
+
+    let b = Cons(Rc::new(RefCell::new(3)), Rc::clone(&a));
+    let c = Cons(Rc::new(RefCell::new(4)), Rc::clone(&a));
+
+    *value.borrow_mut() += 10;
+
+    println!("a after = {a:?}");
+    println!("b after = {b:?}");
+    println!("c after = {c:?}");
+}
