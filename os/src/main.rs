@@ -20,7 +20,11 @@ mod stack_trace;
 
 
 global_asm!(include_str!("entry.asm"));
+
+/// 引入汇编代码 link_app.S 一开始并不存在，而是在构建操作系统时自动生成
+/// 执行 cargo build 时，由脚本 os/build.rs 控制生成 
 global_asm!(include_str!("link_app.S"));
+
 
 #[no_mangle]
 fn rust_main() -> !{
