@@ -24,6 +24,7 @@ pub extern "C" fn _start() -> ! {
 /// 使用 rust 宏，将函数符号 main 标识为弱链接，这样在最后链接的时候，虽然在 lib.rs 和
 /// bin 目录下的某个应用程序都有 main 符号，但是由于 lib.rs 中的main 是弱链接，链接器会使用
 /// bin 目录下的应用主逻辑作为 main。
+/// 如果 bin 目录下找不到 任何 main, 那么编译也能通过，但是在运行时会报错
 #[linkage = "weak"]
 #[no_mangle]
 fn main() -> i32 {
@@ -47,6 +48,7 @@ fn clear_bss() {
 
 use syscall::*; 
 
+/// 对 syscall 模块中的 sys_exit, sys_write 进一步封装
 pub fn exit(exit_code: i32) -> isize {
     sys_exit(exit_code)
 }
