@@ -51,6 +51,7 @@ impl UserStack {
 
 struct AppManager {
     num_app: usize,
+    // 表示当前执行的是第几个应用
     current_app: usize,
     app_start: [usize; MAX_APP_NUM + 1],
 }
