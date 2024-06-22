@@ -1,3 +1,4 @@
+use std::fmt;
 use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use regex::Regex;
@@ -32,7 +33,7 @@ impl BufBuilder {
     }
 }
 
-impl Debug for BufBuilder {
+impl fmt::Debug for BufBuilder {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", String::from_utf8_lossy(&self.buf))
     }
