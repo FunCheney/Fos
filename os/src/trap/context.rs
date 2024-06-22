@@ -2,8 +2,11 @@ use riscv::register::sstatus::{self, Sstatus, SPP};
 
 /// TrapContext
 
+
+/// Trap 发生调用时，需要保存物理资源内容，统一放在 TrapContext 中
 #[repr(C)]
 pub struct TrapContext {
+
     /// general regs [0:31]
     pub x:[usize;32],
     /// CSR sstatus
