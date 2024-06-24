@@ -1,6 +1,6 @@
 //! batch subsystem
 
-use crate::sbi::shutdown;
+// use crate::sbi::shutdown;
 use crate::sync::UPSafeCell;
 use crate::trap::TrapContext;
 use core::arch::asm;
@@ -80,7 +80,7 @@ impl AppManager {
     unsafe fn load_app(&self, app_id: usize){
         if app_id > self.num_app {
             println!("all application completed");
-            shutdown(false);
+            panic!("ShutDown load app");
         }
 
         println!("[kernel] loading app_{}", app_id);
@@ -99,6 +99,8 @@ impl AppManager {
         // 加载完后，插入汇编指令，它的作用是: 在它之后取址过程必须能够看到在它之前的所有对取址区域
         // 的修改
         asm!("fence.i");
+
+
     }
 
     pub fn get_current_app(&self) -> usize {
