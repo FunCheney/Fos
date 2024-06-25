@@ -14,5 +14,5 @@ fn panic(_info: &PanicInfo) -> ! {
         println!("Panicked: {}", _info.message().unwrap());
     }
     unsafe{print_stack_trace();}
-    shutdown(true);
+    shutdown(false);
 }
