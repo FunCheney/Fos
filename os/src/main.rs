@@ -1,7 +1,5 @@
 //! call [println!] display Hello
-
 #![deny(warnings)]
-
 #![no_main]
 #![no_std]
 #![feature(panic_info_message)]
@@ -11,13 +9,22 @@ use log::*;
 
 #[macro_use]
 mod console;
+pub mod batch;
 mod lang_items;
 mod sbi;
 mod logging;
-
+mod sync;
+pub mod syscall;
+pub mod trap;
+mod stack_trace;
 
 
 global_asm!(include_str!("entry.asm"));
+
+// 引入汇编代码 link_app.S 一开始并不存在，而是在构建操作系统时自动生成
+// 执行 cargo build 时，由脚本 os/build.rs 控制生成 
+global_asm!(include_str!("link_app.S"));
+
 
 #[no_mangle]
 fn rust_main() -> !{
@@ -69,8 +76,11 @@ fn rust_main() -> !{
         sbss as usize,
         ebss as usize
         );
+    trap::init();
 
-    sbi::shutdown(false);
+    batch::init();
+
+    batch::run_next_app();
 
 }
 
