@@ -7,7 +7,8 @@ edition = "2021"
 
 [[example]]
 name = "dialect"
-
+[[example]]
+name = "covid"
 [dependencies]
 anyhow = "1" # 错误处理，其实对于库我们应该用 thiserror，但这里简单起见就不节外生枝了
 async-trait = "0.1" # 允许 trait 里有 async fn
