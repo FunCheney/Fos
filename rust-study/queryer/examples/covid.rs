@@ -11,7 +11,7 @@ async fn main() -> Result<()> {
 
     // 使用 polars 直接请求
     let df = CsvReader::new(Cursor::new(data))
-        .infer_schema(Some(16))
+        .infer_schema(Some(1000))
         .finish()?;
 
     let filtered = df.filter(&df["new_deaths"].gt(500))?;
