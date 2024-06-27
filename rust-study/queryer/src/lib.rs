@@ -1,5 +1,6 @@
 mod dialect;
 mod convert;
+mod fetcher;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
