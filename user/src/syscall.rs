@@ -2,7 +2,7 @@ use core::arch::asm;
 
 pub const SYSCALL_WRITE: usize = 64;
 pub const SYSCALL_EXIT: usize = 93;
-
+pub const  SYSCALL_YIELD: usize = 124;
 /// 功能: 将系统调用封装成 syscall 函数
 /// 参数: 'id' 系统调用id 
 ///       'args' 三个参数
@@ -48,4 +48,11 @@ pub fn sys_write(fd: usize, buffer: &[u8]) -> isize {
 /// syscall ID: 93
 pub fn sys_exit(exit_code: i32) -> isize {
     syscall(SYSCALL_EXIT, [exit_code as usize, 0, 0])
+}
+
+/// 功能: 应用主动交出 CPU 所有权并切换到其他应用
+/// 返回值: 总是返回 0
+/// syscall ID: 124
+pub fn sys_yield() -> isize {
+    syscall(SYSCALL_YIELD, [0,0,0])
 }
