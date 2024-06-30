@@ -13,7 +13,8 @@ CP := cp
 TEST ?= 
 
 elf: $(APPS)
-	@cargo build --release
+	# @cargo build --release
+	@python3 build.py
 ifeq ($(TEST), 1)
 	@$(CP) $(TARGET_DIR)/usertests $(TARGET_DIR)/initproc
 endif

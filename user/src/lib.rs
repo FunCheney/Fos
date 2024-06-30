@@ -57,4 +57,6 @@ pub fn write(fd: usize, buf: &[u8]) -> isize {
     sys_write(fd, buf)
 }
 
-
+pub fn yield_() -> isize {
+    sys_yield()
+}

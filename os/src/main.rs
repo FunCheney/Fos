@@ -9,14 +9,17 @@ use log::*;
 
 #[macro_use]
 mod console;
-pub mod batch;
+mod config;
+// pub mod batch;
 mod lang_items;
+mod loader;
 mod sbi;
 mod logging;
 mod sync;
 pub mod syscall;
 pub mod trap;
 mod stack_trace;
+mod task;
 
 
 global_asm!(include_str!("entry.asm"));
@@ -78,10 +81,14 @@ fn rust_main() -> !{
         );
     trap::init();
 
-    batch::init();
+    //batch::init();
+    
+    loader::load_app();
+    task::run_first_task();
 
-    batch::run_next_app();
-
+    //batch::run_next_app();
+    
+    panic!("unreachable in rust main");
 }
 
 fn clear_bss() {
