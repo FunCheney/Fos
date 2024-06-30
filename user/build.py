@@ -1,5 +1,3 @@
-
-
 import os
 
 base_address = 0x80400000
@@ -14,7 +12,8 @@ apps = os.listdir('src/bin')
 apps.sort()
 
 for app in apps:
-    app = app[:app.find(',')]
+    app = app[:app.find('.')]
+    print('app %s' % app)
     lines = []
     lines_before = []
     with open(linker, 'r') as f:
@@ -24,7 +23,7 @@ for app in apps:
             lines.append(line)
 
     with open(linker, 'w+') as f:
-        f.writelines(lines_before)
+        f.writelines(lines)
 
     os.system('cargo build --bin %s --release' % app)
 
