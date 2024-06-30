@@ -1,4 +1,8 @@
+//! implemention of ['TaskContext']
 
+/// TaskContext
+#[derive(Clone, Copy)]
+#[repr(C)]
 pub struct TaskContext {
     ra: usize,
     sp: usize,
@@ -14,7 +18,7 @@ impl TaskContext {
             s: [0; 12],
         }
     }
-    pub fn goto_store(kstack_ptr: usize) -> Self {
+    pub fn goto_restore(kstack_ptr: usize) -> Self {
         extern "C" {
             fn _restore();
         }

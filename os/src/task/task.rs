@@ -1,11 +1,11 @@
 //! Types related to task manager
 
-use supper::TaskContent;
+use super::TaskContext;
 
-#[derive(copy, move)]
-pub struct TaskControlBack {
+#[derive(Copy, Clone)]
+pub struct TaskControlBlock {
     pub task_status: TaskStatus,
-    pub task_cx: TaskContent,
+    pub task_cx: TaskContext
 }
 
 

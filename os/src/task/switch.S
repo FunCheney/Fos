@@ -13,8 +13,8 @@
 	ld s\n, (\n+2)*8(a1)
 .endm
 	.section .text
-	.global _switch
-_switch
+	.globl _switch
+_switch:
 	# 阶段1 
 	# _switch(
 	#        current_task_cx_ptr: *mut TaskContent
