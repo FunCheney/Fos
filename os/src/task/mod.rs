@@ -7,14 +7,13 @@ mod task_context;
 
 use crate::sync::UPSafeCell;
 use lazy_static::*;
-use log::debug;
+use log::{debug, info};
 use switch::_switch;
 use task::{TaskControlBlock, TaskStatus};
 
 use crate::config::MAX_APP_SIZE;
 use crate::loader::{get_num_app, init_app_cx};
 pub use task_context::TaskContext;
-use crate::log::*;
 
 pub struct TaskManager {
     // 任务管理器管理的任务数目，TaskManager 初始化之后就不会在变化
@@ -38,6 +37,7 @@ struct TaskManagerInner {
 lazy_static! {
     pub static ref TASK_MANAGER: TaskManager = {
         let num_app = get_num_app();
+        debug!("TaskManager init get user apps {}",num_app);
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
@@ -76,20 +76,22 @@ impl TaskManager {
     fn run_first_task(&self) -> !{
         let mut inner = self.inner.exclusive_access();
         let task0 = &mut inner.tasks[0];
-        debug!("run_first_task task0")
+        debug!("run_first_task task0");
         task0.task_status = TaskStatus::Running;
         let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
         drop(inner);
         let mut _unused = TaskContext::zero_init();
         unsafe {
-            debug!("_switch next_task_cx_ptr")
+            debug!("_switch next_task_cx_ptr start");
             _switch(&mut _unused as *mut TaskContext, next_task_cx_ptr);
+            info!("_switch next_task_cx_ptr end");
         }
 
         panic!("unreachable in run_first_task!");
     }
 
     pub fn run_next_task(&self) {
+        debug!("run_next_task  into...");
         if let Some(next) = self.find_next_task() {
             let mut inner = self.inner.exclusive_access();
             let current = inner.current_task;
@@ -99,6 +101,7 @@ impl TaskManager {
             let next_task_cx_ptr = &inner.tasks[next].task_cx as *const TaskContext;
             drop(inner);
             unsafe {
+                debug!("_switch run_next_task cur next ");
                 _switch(current_task_cx_ptr, next_task_cx_ptr);
             }
         } else {
@@ -117,16 +120,18 @@ impl TaskManager {
 
 pub fn exit_current_run_next() {
     TASK_MANAGER.mark_current_exited();
-    TASK_MANAGER.run_next_task();
+    run_next_task();
 }
 
 pub fn suspend_current_and_run_next() {
+    info!("task mod call suspend_current_and_run_next");
     TASK_MANAGER.mark_current_suspended();
-    TASK_MANAGER.run_next_task();
+    run_next_task();
 }
 pub fn run_first_task() {
     TASK_MANAGER.run_first_task();
 }
-// pub fn run_next_task(){
-//    TASK_MANAGER.run_next_task();
-//}
+ pub fn run_next_task(){
+     info!("task mod call run_next_task");
+    TASK_MANAGER.run_next_task();
+}
