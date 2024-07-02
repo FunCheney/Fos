@@ -22,7 +22,6 @@ pub fn print(args: fmt::Arguments) {
     //  基于 core 中的 write_fmt 实现
     Stdout.write_fmt(args).unwrap();
 }
-
 #[macro_export]
 macro_rules! print {
     ($fmt: literal $(, $($arg: tt)+)?) => {

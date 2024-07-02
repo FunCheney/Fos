@@ -7,7 +7,7 @@
 mod context;
 
 // use crate::batch::run_next_app;
-use crate::syscall::syscall;
+use crate::{syscall::syscall, task::exit_current_run_next};
 use core::arch::global_asm;
 use log::{debug, error};
 use riscv::register::{
@@ -56,14 +56,18 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
 
         Trap::Exception(Exception::StoreFault) |
         Trap::Exception(Exception::StorePageFault) => {
-            error!("[kernel] PageFault in application, kernel killed it.");
-            panic!("[Kernel cannnot continue]");
+            error!("[Kernel] PageFault in app, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.", stval, cx.sepc);
+            exit_current_run_next();
             //run_next_app();
         }
         Trap::Exception(Exception::IllegalInstruction) => {
             error!("[kernel] IllegalInstruction in application, kernel killed it.");
             //run_next_app();
-            panic!("[kernel cannot continue]");
+            exit_current_run_next();
+        }
+        Trap::Exception(Exception::InstructionFault) => {
+            error!("[kernel] InstructionFault in application. kernel killed it.");
+            exit_current_run_next();
         }
         _ => {
             panic!("Unsupported trap {:?}, stval = {:#x}!", scause.cause(), stval);
