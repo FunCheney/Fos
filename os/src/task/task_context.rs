@@ -12,7 +12,6 @@ pub struct TaskContext {
 }
 
 impl TaskContext {
-
     pub fn zero_init() -> Self {
         debug!("TaskContext zero_init...");
         Self {
@@ -28,7 +27,7 @@ impl TaskContext {
         }
 
         Self {
-            ra: _restore  as usize,
+            ra: _restore as usize,
             sp: kstack_ptr,
             s: [0; 12],
         }

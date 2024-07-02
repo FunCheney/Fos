@@ -1,5 +1,5 @@
 //! os/src/task/mod.rs
-
+/// 应用的执行与切换
 mod switch;
 #[allow(clippy::rodule_inception)]
 mod task;
@@ -14,7 +14,6 @@ use task::{TaskControlBlock, TaskStatus};
 use crate::config::MAX_APP_SIZE;
 use crate::loader::{get_num_app, init_app_cx};
 pub use task_context::TaskContext;
-
 pub struct TaskManager {
     // 任务管理器管理的任务数目，TaskManager 初始化之后就不会在变化
     num_app: usize,
@@ -37,7 +36,7 @@ struct TaskManagerInner {
 lazy_static! {
     pub static ref TASK_MANAGER: TaskManager = {
         let num_app = get_num_app();
-        debug!("TaskManager init get user apps {}",num_app);
+        debug!("TaskManager init get user apps {}", num_app);
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
@@ -73,7 +72,7 @@ impl TaskManager {
         inner.tasks[current].task_status = TaskStatus::Exited;
     }
 
-    fn run_first_task(&self) -> !{
+    fn run_first_task(&self) -> ! {
         let mut inner = self.inner.exclusive_access();
         let task0 = &mut inner.tasks[0];
         debug!("run_first_task task0");
@@ -131,7 +130,7 @@ pub fn suspend_current_and_run_next() {
 pub fn run_first_task() {
     TASK_MANAGER.run_first_task();
 }
- pub fn run_next_task(){
-     info!("task mod call run_next_task");
+pub fn run_next_task() {
+    info!("task mod call run_next_task");
     TASK_MANAGER.run_next_task();
 }
