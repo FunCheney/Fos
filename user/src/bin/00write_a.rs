@@ -11,7 +11,6 @@ const HEIGHT: usize = 5;
 
 #[no_mangle]
 fn main() -> i32 {
-    print!("00_write exec");
     for i in 0..HEIGHT  {
        for _ in 0..WIDITH  {
            print!("A");
