@@ -7,13 +7,13 @@
 mod context;
 
 // use crate::batch::run_next_app;
-use crate::{syscall::syscall, task::exit_current_run_next};
+use crate::{syscall::syscall, task::{exit_current_run_next, suspend_current_and_run_next}};
 use core::arch::global_asm;
 use log::{debug, error};
 use riscv::register::{
-    mtvec::TrapMode,
-    scause::{self, Exception, Trap},
-    stval, stvec,
+    mtvec::TrapMode, 
+    scause::{self, Exception,Interrupt, Trap},
+    stval, stvec
 };
 
 // 引入了一个外部符号 __alltraps ，并将 stvec 设置为 Direct 模式指向它的地址
@@ -64,6 +64,9 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
             error!("[kernel] IllegalInstruction in application, kernel killed it.");
             //run_next_app();
             exit_current_run_next();
+        }
+        Trap::Interrupt(Interrupt::SupervisorTimer) => {
+            suspend_current_and_run_next();
         }
         Trap::Exception(Exception::InstructionFault) => {
             error!("[kernel] InstructionFault in application. kernel killed it.");
