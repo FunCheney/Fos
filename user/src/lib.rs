@@ -37,12 +37,15 @@ fn clear_bss() {
         fn end_bss();
     }
 
-    unsafe {
-        core::slice::from_raw_parts_mut(
-            start_bss as usize as *mut u8,
-            end_bss as usize - start_bss as usize,
-        ).fill(0);
-    }
+    //unsafe {
+    //    core::slice::from_raw_parts_mut(
+    //        start_bss as usize as *mut u8,
+    //        end_bss as usize - start_bss as usize,
+    //    ).fill(0);
+    //}
+    (start_bss as usize..end_bss as usize).for_each(|addr| unsafe {
+        (addr as *mut u8).write_volatile(0);
+    });
 }
 
 

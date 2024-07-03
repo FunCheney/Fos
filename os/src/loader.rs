@@ -70,7 +70,7 @@ pub fn load_app() {
         debug!("loader app base_i {}", base_i);
         // clear region
         (base_i..base_i + APP_SIZE_LIMIT).for_each(|addr| unsafe {
-            (addr as *mut u8).write_volatile(0);
+            (addr as *mut u8).write_volatile(0)
         });
 
         // load app from data section to memory
