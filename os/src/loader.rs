@@ -69,9 +69,8 @@ pub fn load_app() {
         let base_i = get_base_i(i);
         debug!("loader app base_i {}", base_i);
         // clear region
-        (base_i..base_i + APP_SIZE_LIMIT).for_each(|addr| unsafe {
-            (addr as *mut u8).write_volatile(0)
-        });
+        (base_i..base_i + APP_SIZE_LIMIT)
+            .for_each(|addr| unsafe { (addr as *mut u8).write_volatile(0) });
 
         // load app from data section to memory
         let src = unsafe {

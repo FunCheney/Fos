@@ -2,8 +2,8 @@
 use log::info;
 
 // use crate::batch::run_next_app;
-use crate::task::suspend_current_and_run_next;
 use crate::task::exit_current_run_next;
+use crate::task::suspend_current_and_run_next;
 
 /// task exits and submit an exit code
 pub fn sys_exit(exit_code: i32) -> ! {
