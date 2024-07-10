@@ -6,8 +6,8 @@
 
 use core::arch::global_asm;
 use log::*;
-// #[path = "boards/qemu.rs"]
-// mod board;
+#[path = "boards/qemu.rs"]
+mod board;
 
 #[macro_use]
 mod console;
@@ -21,6 +21,7 @@ mod stack_trace;
 mod sync;
 pub mod syscall;
 mod task;
+mod timer;
 pub mod trap;
 
 global_asm!(include_str!("entry.asm"));
@@ -78,6 +79,8 @@ fn rust_main() -> ! {
     info!("[kernel] load app start");
     loader::load_app();
     info!("[kernel]  run first task");
+    trap::enable_timer_interrupt();
+    timer::set_next_trigger();
     task::run_first_task();
 
     //batch::run_next_app();

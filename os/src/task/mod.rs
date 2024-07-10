@@ -123,13 +123,13 @@ impl TaskManager {
 
 pub fn exit_current_run_next() {
     info!("task mod call exit_current_run_next");
-    TASK_MANAGER.mark_current_exited();
+    mark_current_exited();
     run_next_task();
 }
 
 pub fn suspend_current_and_run_next() {
     info!("task mod call suspend_current_and_run_next");
-    TASK_MANAGER.mark_current_suspended();
+    mark_current_suspended();
     run_next_task();
 }
 pub fn run_first_task() {
@@ -138,4 +138,13 @@ pub fn run_first_task() {
 pub fn run_next_task() {
     info!("task mod call run_next_task");
     TASK_MANAGER.run_next_task();
+} 
+
+fn mark_current_exited() {
+    TASK_MANAGER.mark_current_exited();
 }
+    
+fn mark_current_suspended() {
+    TASK_MANAGER.mark_current_suspended();
+    
+}    

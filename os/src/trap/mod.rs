@@ -4,11 +4,14 @@
 /// 在批处理操作系统初始化时，我们需要修改 stvec 寄存器来指向正确的 Trap 处理入口点。
 mod context;
 
+use crate::task::exit_current_run_next;
 // use crate::batch::run_next_app;
 //use crate::{syscall::syscall, task::{exit_current_run_next, suspend_current_and_run_next}};
-use crate::syscall::syscall;
+use crate::{syscall::syscall, task::suspend_current_and_run_next};
+use crate::timer::set_next_trigger;
 use core::arch::global_asm;
 use log::{debug, error};
+use riscv::register::sie;
 use riscv::register::{
     mtvec::TrapMode,
     scause::{self, Exception, Interrupt, Trap},
@@ -33,6 +36,12 @@ pub fn init() {
     }
 }
 
+pub fn enable_timer_interrupt() {
+    unsafe {
+        sie::set_stimer();
+    }
+}
+    
 #[no_mangle]
 pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
     let scause = scause::read();
@@ -55,19 +64,21 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
 
         Trap::Exception(Exception::StoreFault) | Trap::Exception(Exception::StorePageFault) => {
             error!("[Kernel] PageFault in app, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.", stval, cx.sepc);
-            //exit_current_run_next();
+            exit_current_run_next();
             //run_next_app();
-            panic!("[kernel] not continue!");
+            //panic!("[kernel] not continue!");
         }
         Trap::Exception(Exception::IllegalInstruction) => {
             error!("[kernel] IllegalInstruction in application, kernel killed it.");
-            panic!("[kernel] not continue!");
+            //panic!("[kernel] not continue!");
             //run_next_app();
-            //exit_current_run_next();
+            exit_current_run_next();
         }
         Trap::Interrupt(Interrupt::SupervisorTimer) => {
             //suspend_current_and_run_next();
-            panic!("[kernel] not continue!");
+            //panic!("[kernel] not continue!");
+            set_next_trigger();
+            suspend_current_and_run_next();
         }
         Trap::Exception(Exception::InstructionFault) => {
             error!("[kernel] InstructionFault in application. kernel killed it.");
