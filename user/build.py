@@ -24,10 +24,12 @@ for app in apps:
 
     with open(linker, 'w+') as f:
         f.writelines(lines)
-
+    # 使用 cargo build 构建当前应用    
     os.system('cargo build --bin %s --release' % app)
 
     print('[build.py] application %s start with address %s' %(app, hex(base_address+step*app_id)))
+
+    # 还原 src/linker.ld 
     with open(linker, 'w+') as f:
         f.writelines(lines_before)
     app_id = app_id + 1

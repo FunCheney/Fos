@@ -82,8 +82,9 @@ fn rust_main() -> !{
     trap::init();
 
     //batch::init();
-    
+    info!("[kernel] load app start");
     loader::load_app();
+    info!("[kernel]  run first task");
     task::run_first_task();
 
     //batch::run_next_app();

@@ -1,5 +1,7 @@
 //! implemention of ['TaskContext']
 
+use log::debug;
+
 /// TaskContext
 #[derive(Clone, Copy)]
 #[repr(C)]
@@ -12,6 +14,7 @@ pub struct TaskContext {
 impl TaskContext {
 
     pub fn zero_init() -> Self {
+        debug!("TaskContext zero_init...");
         Self {
             ra: 0,
             sp: 0,
@@ -19,6 +22,7 @@ impl TaskContext {
         }
     }
     pub fn goto_restore(kstack_ptr: usize) -> Self {
+        debug!("TaskContext goto_restore...");
         extern "C" {
             fn _restore();
         }
