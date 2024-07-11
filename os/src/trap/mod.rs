@@ -10,7 +10,7 @@ use crate::task::exit_current_run_next;
 use crate::{syscall::syscall, task::suspend_current_and_run_next};
 use crate::timer::set_next_trigger;
 use core::arch::global_asm;
-use log::{debug, error};
+use log::{debug, error, info};
 use riscv::register::sie;
 use riscv::register::{
     mtvec::TrapMode,
@@ -63,29 +63,26 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
         }
 
         Trap::Exception(Exception::StoreFault) | Trap::Exception(Exception::StorePageFault) => {
-            error!("[Kernel] PageFault in app, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.", stval, cx.sepc);
+            info!("[Kernel] PageFault in app, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.", stval, cx.sepc);
             exit_current_run_next();
             //run_next_app();
             //panic!("[kernel] not continue!");
         }
         Trap::Exception(Exception::IllegalInstruction) => {
-            error!("[kernel] IllegalInstruction in application, kernel killed it.");
+            info!("[kernel] IllegalInstruction in application.");
             //panic!("[kernel] not continue!");
             //run_next_app();
             exit_current_run_next();
         }
         Trap::Interrupt(Interrupt::SupervisorTimer) => {
+            debug!("[kernel] SupervisorTimer in application.");
             //suspend_current_and_run_next();
             //panic!("[kernel] not continue!");
             set_next_trigger();
             suspend_current_and_run_next();
         }
-        Trap::Exception(Exception::InstructionFault) => {
-            error!("[kernel] InstructionFault in application. kernel killed it.");
-            //exit_current_run_next();
-            panic!("[kernel] not continue!");
-        }
         _ => {
+            error!("[kernel] error in trap mod");
             panic!(
                 "Unsupported trap {:?}, stval = {:#x}!",
                 scause.cause(),

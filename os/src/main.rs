@@ -78,9 +78,11 @@ fn rust_main() -> ! {
     //batch::init();
     info!("[kernel] load app start");
     loader::load_app();
-    info!("[kernel]  run first task");
+    info!("[kernel] enable timer interrupt");
     trap::enable_timer_interrupt();
+    info!("[kernel] set next trigger");
     timer::set_next_trigger();
+    info!("[kernel] run_first_task");
     task::run_first_task();
 
     //batch::run_next_app();

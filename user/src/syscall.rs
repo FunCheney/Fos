@@ -2,7 +2,8 @@ use core::arch::asm;
 
 pub const SYSCALL_WRITE: usize = 64;
 pub const SYSCALL_EXIT: usize = 93;
-pub const  SYSCALL_YIELD: usize = 124;
+pub const SYSCALL_YIELD: usize = 124;
+pub const SYSCALL_GET_TIME: usize = 169; 
 /// 功能: 将系统调用封装成 syscall 函数
 /// 参数: 'id' 系统调用id 
 ///       'args' 三个参数
@@ -55,4 +56,9 @@ pub fn sys_exit(exit_code: i32) -> isize {
 /// syscall ID: 124
 pub fn sys_yield() -> isize {
     syscall(SYSCALL_YIELD, [0,0,0])
+}
+
+
+pub fn sys_get_time() -> isize{
+    syscall(SYSCALL_GET_TIME, [0,0,0])
 }

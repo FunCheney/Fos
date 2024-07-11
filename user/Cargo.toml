@@ -6,5 +6,5 @@ edition = "2021"
 [dependencies]
 #riscv = {git = "https://github.com/rcore-os/riscv", features= ["inline-asm"]}
 
-[proflie.release]
+[profile.release]
 debug = true

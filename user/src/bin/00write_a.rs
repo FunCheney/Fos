@@ -4,8 +4,6 @@
 #[macro_use]
 extern crate user_lib;
 
-use user_lib::yield_;
-
 const WIDITH: usize = 10;
 const HEIGHT: usize = 5;
 
@@ -17,9 +15,8 @@ fn main() -> i32 {
        } 
 
        println!("[{}/{}]", i+1, HEIGHT);
-       yield_();
     }
-    println!("Test write_a OK");
+    println!("[user] Test write_a OK");
     0
 }
 

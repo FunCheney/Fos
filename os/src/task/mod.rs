@@ -86,9 +86,7 @@ impl TaskManager {
         unsafe {
             debug!("_switch next_task_cx_ptr start");
             __switch(&mut _unused as *mut TaskContext, next_task_cx_ptr);
-            info!("_switch next_task_cx_ptr end");
         }
-
         panic!("unreachable in run_first_task!");
     }
 
@@ -122,13 +120,13 @@ impl TaskManager {
 }
 
 pub fn exit_current_run_next() {
-    info!("task mod call exit_current_run_next");
+    debug!("task mod call exit_current_run_next");
     mark_current_exited();
     run_next_task();
 }
 
 pub fn suspend_current_and_run_next() {
-    info!("task mod call suspend_current_and_run_next");
+    debug!("task mod call suspend_current_and_run_next");
     mark_current_suspended();
     run_next_task();
 }
@@ -136,7 +134,7 @@ pub fn run_first_task() {
     TASK_MANAGER.run_first_task();
 }
 pub fn run_next_task() {
-    info!("task mod call run_next_task");
+    debug!("task mod call run_next_task");
     TASK_MANAGER.run_next_task();
 } 
 
@@ -146,5 +144,4 @@ fn mark_current_exited() {
     
 fn mark_current_suspended() {
     TASK_MANAGER.mark_current_suspended();
-    
 }    
