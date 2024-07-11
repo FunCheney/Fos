@@ -4,23 +4,19 @@
 #[macro_use]
 extern crate user_lib;
 
-use user_lib::yield_;
-
 const WIDITH: usize = 10;
 const HEIGHT: usize = 5;
 
 #[no_mangle]
 fn main() -> i32 {
-    print!("00_write exec");
     for i in 0..HEIGHT  {
        for _ in 0..WIDITH  {
            print!("A");
        } 
 
        println!("[{}/{}]", i+1, HEIGHT);
-       yield_();
     }
-    println!("Test write_a OK");
+    println!("[user] Test write_a OK");
     0
 }
 

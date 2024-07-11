@@ -1,4 +1,5 @@
 //! os/src/loader.rs
+/// 实现应用的加载
 use log::debug;
 
 use crate::config::*;
@@ -58,9 +59,7 @@ pub fn load_app() {
     debug!("loader app start");
     let num_app_ptr = _num_app as usize as *const usize;
     let num_app = get_num_app();
-    let app_start = unsafe { 
-        core::slice::from_raw_parts(num_app_ptr.add(1), num_app + 1)
-    };
+    let app_start = unsafe { core::slice::from_raw_parts(num_app_ptr.add(1), num_app + 1) };
 
     unsafe {
         asm!("fence.i");
@@ -70,9 +69,8 @@ pub fn load_app() {
         let base_i = get_base_i(i);
         debug!("loader app base_i {}", base_i);
         // clear region
-        (base_i..base_i + APP_SIZE_LIMIT).for_each(|addr| unsafe {
-            (addr as *mut u8).write_volatile(0);
-        });
+        (base_i..base_i + APP_SIZE_LIMIT)
+            .for_each(|addr| unsafe { (addr as *mut u8).write_volatile(0) });
 
         // load app from data section to memory
         let src = unsafe {

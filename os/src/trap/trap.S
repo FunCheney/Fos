@@ -55,9 +55,10 @@ _alltraps:
         call trap_handler
 
 _restore:
-	# case1: start running app by __restore
+	# case1: start running app by _restore
 	# case2: back to U after handling trap
-	mv sp, a0
+        # 这里要注意不再需要 mv sp, a0
+	# mv sp, a0
 	# now sp-> kernel stack[after allocate] sscrath -> User stack
 	# restore sstatus/sepc
 	ld t0, 32*8(sp)

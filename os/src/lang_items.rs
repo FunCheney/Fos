@@ -17,5 +17,5 @@ fn panic(_info: &PanicInfo) -> ! {
     unsafe {
         print_stack_trace();
     }
-    shutdown(false);
+    shutdown(true)
 }

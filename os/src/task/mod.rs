@@ -1,19 +1,21 @@
 //! os/src/task/mod.rs
-
+/// 应用的执行与切换
+mod context;
 mod switch;
+
 #[allow(clippy::rodule_inception)]
 mod task;
-mod task_context;
 
+use crate::sbi::shutdown;
 use crate::sync::UPSafeCell;
 use lazy_static::*;
 use log::{debug, info};
-use switch::_switch;
+use switch::__switch;
 use task::{TaskControlBlock, TaskStatus};
 
 use crate::config::MAX_APP_SIZE;
 use crate::loader::{get_num_app, init_app_cx};
-pub use task_context::TaskContext;
+pub use context::TaskContext;
 
 pub struct TaskManager {
     // 任务管理器管理的任务数目，TaskManager 初始化之后就不会在变化
@@ -37,13 +39,13 @@ struct TaskManagerInner {
 lazy_static! {
     pub static ref TASK_MANAGER: TaskManager = {
         let num_app = get_num_app();
-        debug!("TaskManager init get user apps {}",num_app);
+        debug!("TaskManager init get user apps {}", num_app);
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
         }; MAX_APP_SIZE];
 
-        for (i, task) in tasks.iter_mut().enumerate().take(num_app) {
+        for (i, task) in tasks.iter_mut().enumerate() {
             task.task_cx = TaskContext::goto_restore(init_app_cx(i));
             task.task_status = TaskStatus::Ready;
         }
@@ -73,7 +75,7 @@ impl TaskManager {
         inner.tasks[current].task_status = TaskStatus::Exited;
     }
 
-    fn run_first_task(&self) -> !{
+    fn run_first_task(&self) -> ! {
         let mut inner = self.inner.exclusive_access();
         let task0 = &mut inner.tasks[0];
         debug!("run_first_task task0");
@@ -83,10 +85,8 @@ impl TaskManager {
         let mut _unused = TaskContext::zero_init();
         unsafe {
             debug!("_switch next_task_cx_ptr start");
-            _switch(&mut _unused as *mut TaskContext, next_task_cx_ptr);
-            info!("_switch next_task_cx_ptr end");
+            __switch(&mut _unused as *mut TaskContext, next_task_cx_ptr);
         }
-
         panic!("unreachable in run_first_task!");
     }
 
@@ -102,10 +102,11 @@ impl TaskManager {
             drop(inner);
             unsafe {
                 debug!("_switch run_next_task cur next ");
-                _switch(current_task_cx_ptr, next_task_cx_ptr);
+                __switch(current_task_cx_ptr, next_task_cx_ptr);
             }
         } else {
-            panic!("All application completed");
+            info!("All application completed");
+            shutdown(false);
         }
     }
 
@@ -119,19 +120,28 @@ impl TaskManager {
 }
 
 pub fn exit_current_run_next() {
-    TASK_MANAGER.mark_current_exited();
+    debug!("task mod call exit_current_run_next");
+    mark_current_exited();
     run_next_task();
 }
 
 pub fn suspend_current_and_run_next() {
-    info!("task mod call suspend_current_and_run_next");
-    TASK_MANAGER.mark_current_suspended();
+    debug!("task mod call suspend_current_and_run_next");
+    mark_current_suspended();
     run_next_task();
 }
 pub fn run_first_task() {
     TASK_MANAGER.run_first_task();
 }
- pub fn run_next_task(){
-     info!("task mod call run_next_task");
+pub fn run_next_task() {
+    debug!("task mod call run_next_task");
     TASK_MANAGER.run_next_task();
+} 
+
+fn mark_current_exited() {
+    TASK_MANAGER.mark_current_exited();
 }
+    
+fn mark_current_suspended() {
+    TASK_MANAGER.mark_current_suspended();
+}    
