@@ -8,15 +8,16 @@ mod task;
 
 use crate::sbi::shutdown;
 use crate::sync::UPSafeCell;
-use crate::timer::get_time_ms;
+use crate::timer::{get_time_ms, get_time_us};
 use lazy_static::*;
 use log::{debug, info};
-use switch::__switch;
 use task::{TaskControlBlock, TaskStatus};
 
 use crate::config::MAX_APP_SIZE;
 use crate::loader::{get_num_app, init_app_cx};
 pub use context::TaskContext;
+
+
 
 pub struct TaskManager {
     // 任务管理器管理的任务数目，TaskManager 初始化之后就不会在变化
@@ -134,6 +135,7 @@ impl TaskManager {
             }
         } else {
             info!("All application completed");
+            info!("task switch time: {} us", self::get_switch_time_count());
             shutdown(false);
         }
     }
@@ -160,6 +162,30 @@ impl TaskManager {
         inner.tasks[current].user_time += inner.refresh_stop_watch();
     }
 
+   
+    
+}
+
+/// 切换的开始时间
+static mut SWITCH_TIME_START: usize = 0;
+
+/// 切换的总时间
+static mut SWITCH_TIME_COUNT: usize = 0;
+
+/// 包装 __switch 函数，所有的任务切换都会经过 __switch, 统计它的运行开销
+unsafe fn __switch(current_task_cx_ptr: *mut TaskContext, next_task_cx_ptr: *const TaskContext) {
+
+    SWITCH_TIME_START = get_time_us();
+    crate::task::switch::__switch(current_task_cx_ptr, next_task_cx_ptr);
+
+    SWITCH_TIME_COUNT += get_time_us() - SWITCH_TIME_START;
+}
+
+/// 获取总的切换时间
+fn get_switch_time_count() -> usize {
+    unsafe { 
+        SWITCH_TIME_COUNT
+    }
 }
 
 pub fn exit_current_run_next() {
