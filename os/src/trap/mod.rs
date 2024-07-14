@@ -4,7 +4,7 @@
 /// 在批处理操作系统初始化时，我们需要修改 stvec 寄存器来指向正确的 Trap 处理入口点。
 mod context;
 
-use crate::task::exit_current_run_next;
+use crate::task::{exit_current_run_next};
 // use crate::batch::run_next_app;
 //use crate::{syscall::syscall, task::{exit_current_run_next, suspend_current_and_run_next}};
 use crate::{syscall::syscall, task::suspend_current_and_run_next};
@@ -44,6 +44,9 @@ pub fn enable_timer_interrupt() {
     
 #[no_mangle]
 pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
+    // 进入用户态的时候，可以统计用户态的运行时间
+    crate::task::user_time_end();
+
     let scause = scause::read();
     let stval = stval::read();
     // 根据 scause 寄存器所保存的 Trap 原因进行分发处理
@@ -78,7 +81,9 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
             debug!("[kernel] SupervisorTimer in application.");
             //suspend_current_and_run_next();
             //panic!("[kernel] not continue!");
+            // 当触发一个 S 特权级时钟中断，首先重置计时器
             set_next_trigger();
+            // 调用函数
             suspend_current_and_run_next();
         }
         _ => {
@@ -90,6 +95,7 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
             );
         }
     }
+    crate::task::user_time_start();
     cx
 }
 

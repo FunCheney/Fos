@@ -27,6 +27,8 @@ impl TaskContext {
         }
 
         Self {
+            // ra 初始化为 _restore 地址
+            // 当 __switch 完成后，ret 就能直接进入 trap.S 的 _restore 恢复到用户状态继续执行
             ra: _restore as usize,
             sp: kstack_ptr,
             s: [0; 12],

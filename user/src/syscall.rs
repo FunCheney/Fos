@@ -58,7 +58,9 @@ pub fn sys_yield() -> isize {
     syscall(SYSCALL_YIELD, [0,0,0])
 }
 
-
+/// 功能: 获取系统中的的当前时间
+/// 返回值: 是否执行成功，成功则返回 0
+/// syscall ID: 169
 pub fn sys_get_time() -> isize{
     syscall(SYSCALL_GET_TIME, [0,0,0])
 }
