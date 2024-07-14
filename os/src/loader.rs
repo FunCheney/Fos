@@ -95,6 +95,7 @@ pub fn get_num_app() -> usize {
     unsafe { (_num_app as usize as *const usize).read_volatile() }
 }
 
+/// 初始化每个任务的内核栈 
 pub fn init_app_cx(app_id: usize) -> usize {
     KERNEL_STACK[app_id].push_context(TrapContext::app_init_context(
         get_base_i(app_id),

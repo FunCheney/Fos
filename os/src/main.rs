@@ -79,8 +79,10 @@ fn rust_main() -> ! {
     info!("[kernel] load app start");
     loader::load_app();
     info!("[kernel] enable timer interrupt");
+    // 设置了 sie.stie 使得 S 特权级时钟不会被屏蔽
     trap::enable_timer_interrupt();
     info!("[kernel] set next trigger");
+    // 设置了 10 ms 的计时器
     timer::set_next_trigger();
     info!("[kernel] run_first_task");
     task::run_first_task();

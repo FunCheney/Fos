@@ -8,6 +8,7 @@ mod task;
 
 use crate::sbi::shutdown;
 use crate::sync::UPSafeCell;
+use crate::timer::get_time_ms;
 use lazy_static::*;
 use log::{debug, info};
 use switch::__switch;
@@ -34,6 +35,17 @@ struct TaskManagerInner {
     tasks: [TaskControlBlock; MAX_APP_SIZE],
     // 当前正在运行的任务Id
     current_task: usize,
+    // 停表
+    stop_watch: usize,
+ 
+}
+
+impl TaskManagerInner {
+    fn refresh_stop_watch(&mut self) -> usize {
+        let start_time = self.stop_watch;
+        self.stop_watch = get_time_ms();
+        self.stop_watch - start_time
+    }
 }
 
 lazy_static! {
@@ -43,6 +55,8 @@ lazy_static! {
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
+            user_time: 0,
+            kernel_time: 0,
         }; MAX_APP_SIZE];
 
         for (i, task) in tasks.iter_mut().enumerate() {
@@ -56,6 +70,7 @@ lazy_static! {
                 UPSafeCell::new(TaskManagerInner {
                     tasks,
                     current_task: 0,
+                    stop_watch: 0,
                 })
             },
         }
@@ -66,12 +81,20 @@ impl TaskManager {
     fn mark_current_suspended(&self) {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
+        debug!("task {} suppended", current);
+        // 统计内核时间
+        inner.tasks[current].kernel_time += inner.refresh_stop_watch();
         inner.tasks[current].task_status = TaskStatus::Ready;
     }
 
     fn mark_current_exited(&self) {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
+        debug!("task {} exited", current);
+        // 统计内核时间并输出
+        inner.tasks[current].kernel_time += inner.refresh_stop_watch();
+        println!("[task {} exited. user_time {} ms, kernel_time {} ms]",
+                 current, inner.tasks[current].user_time, inner.tasks[current].kernel_time);
         inner.tasks[current].task_status = TaskStatus::Exited;
     }
 
@@ -81,6 +104,8 @@ impl TaskManager {
         debug!("run_first_task task0");
         task0.task_status = TaskStatus::Running;
         let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
+        // 开始记录时间
+        inner.refresh_stop_watch();
         drop(inner);
         let mut _unused = TaskContext::zero_init();
         unsafe {
@@ -100,6 +125,9 @@ impl TaskManager {
             let current_task_cx_ptr = &mut inner.tasks[current].task_cx as *mut TaskContext;
             let next_task_cx_ptr = &inner.tasks[next].task_cx as *const TaskContext;
             drop(inner);
+            if current != next {
+                info!("[kernel] task switch from {} to {}", current, next);
+            }
             unsafe {
                 debug!("_switch run_next_task cur next ");
                 __switch(current_task_cx_ptr, next_task_cx_ptr);
@@ -117,6 +145,21 @@ impl TaskManager {
             .map(|id| id % self.num_app)
             .find(|id| inner.tasks[*id].task_status == TaskStatus::Ready)
     }
+
+        /// 统计内核时间，从现在开始算的是用户时间
+    fn user_time_start(&self) {
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].kernel_time += inner.refresh_stop_watch();
+    }
+
+    /// 统计用户时间，从现在开始算的时内核时间
+    fn user_time_end(&self) {
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].user_time += inner.refresh_stop_watch();
+    }
+
 }
 
 pub fn exit_current_run_next() {
@@ -145,3 +188,12 @@ fn mark_current_exited() {
 fn mark_current_suspended() {
     TASK_MANAGER.mark_current_suspended();
 }    
+
+
+pub fn user_time_start() {
+    TASK_MANAGER.user_time_start()
+}
+
+pub fn user_time_end() {
+    TASK_MANAGER.user_time_end()
+}
