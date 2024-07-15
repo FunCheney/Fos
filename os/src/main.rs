@@ -3,6 +3,7 @@
 #![no_main]
 #![no_std]
 #![feature(panic_info_message)]
+#![feature(alloc_error_handler)]
 
 use core::arch::global_asm;
 use log::*;
@@ -22,7 +23,10 @@ mod sync;
 pub mod syscall;
 mod task;
 mod timer;
+mod mm;
 pub mod trap;
+
+extern crate alloc;
 
 global_asm!(include_str!("entry.asm"));
 
@@ -71,11 +75,16 @@ fn rust_main() -> ! {
         "[kernel] boot_stack top=bottom={:#x}, lower_bound={:#x}",
         boot_stack_top as usize, boot_stack_lower_bound as usize
     );
+     
+
+    mm::init();
+    mm::heap_test();
+ 
 
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
     trap::init();
 
-    //batch::init();
+        //batch::init();
     info!("[kernel] load app start");
     loader::load_app();
     info!("[kernel] enable timer interrupt");
@@ -87,7 +96,7 @@ fn rust_main() -> ! {
     info!("[kernel] run_first_task");
     task::run_first_task();
 
-    //batch::run_next_app();
+   //batch::run_next_app();
 
     panic!("unreachable in rust main");
 }
