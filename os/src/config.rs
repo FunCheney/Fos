@@ -9,6 +9,11 @@ pub const APP_SIZE_LIMIT: usize = 0x20000;
 
 pub const KERNEL_HEAP_SIZE: usize = 0x30_0000;
 
+/// 页面内偏移位宽
+pub const PAGE_SIZE_BITS: usize = 0xc;
+/// 页面大小 4096
+pub const PAGE_SIZE: usize = 0x1000;
+
 
 pub use crate::board::CLOCK_FREQ;
 
