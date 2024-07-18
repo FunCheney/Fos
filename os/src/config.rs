@@ -14,6 +14,8 @@ pub const PAGE_SIZE_BITS: usize = 0xc;
 /// 页面大小 4096
 pub const PAGE_SIZE: usize = 0x1000;
 
+/// 物理内存的终止物理地址
+pub const MEMORY_END: usize = 0x80800000;
 
 pub use crate::board::CLOCK_FREQ;
 
