@@ -2,6 +2,8 @@ use alloc::vec::Vec;
 
 use super::address::PhyPageNum;
 
+use lazy_static::*;
+
 /// 描述页帧管理器需要那些功能
 trait FrameAllocator {
     fn new() -> Self;

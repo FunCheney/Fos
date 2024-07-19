@@ -62,7 +62,7 @@ impl PhyAddr {
     pub fn floor(&self) -> PhyPageNum {
         PhyPageNum(self.0 / PAGE_SIZE)
     }
-    pub fn cell(&self) -> PhyPageNum {
+    pub fn ceil(&self) -> PhyPageNum {
         PhyPageNum((self.0 + PAGE_SIZE - 1) / PAGE_SIZE)
     }
 }
