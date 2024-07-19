@@ -1,6 +1,5 @@
 use crate::config::{PAGE_SIZE, PAGE_SIZE_BITS};
 
-
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct PhyAddr(pub usize);
 
@@ -10,23 +9,21 @@ pub struct VirtAddr(pub usize);
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct PhyPageNum(pub usize);
 
-
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct VirtPageNum(pub usize);
-
 
 const PA_WIDTH_SV39: usize = 56;
 const PPN_WIDTH_SV39: usize = PA_WIDTH_SV39 - PAGE_SIZE_BITS;
 
 impl From<usize> for PhyAddr {
     fn from(value: usize) -> Self {
-        Self(value &( (1 << PA_WIDTH_SV39) - 1 ))
+        Self(value & ((1 << PA_WIDTH_SV39) - 1))
     }
 }
 
 impl From<usize> for PhyPageNum {
     fn from(value: usize) -> Self {
-        Self(value & ((1 << PPN_WIDTH_SV39) - 1 ))
+        Self(value & ((1 << PPN_WIDTH_SV39) - 1))
     }
 }
 
@@ -62,11 +59,10 @@ impl From<PhyPageNum> for PhyAddr {
 }
 
 impl PhyAddr {
-   pub  fn floor(&self) -> PhyPageNum {
+    pub fn floor(&self) -> PhyPageNum {
         PhyPageNum(self.0 / PAGE_SIZE)
     }
-   pub fn cell(&self) -> PhyPageNum {
-       PhyPageNum((self.0 + PAGE_SIZE - 1) / PAGE_SIZE)
-   }
-    
+    pub fn cell(&self) -> PhyPageNum {
+        PhyPageNum((self.0 + PAGE_SIZE - 1) / PAGE_SIZE)
+    }
 }

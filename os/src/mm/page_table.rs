@@ -1,4 +1,3 @@
-
 use bitflags::*;
 
 use super::address::PhyPageNum;
@@ -25,27 +24,21 @@ bitflags! {
     }
 }
 
-
-
 #[derive(Clone, Copy)]
 #[repr(C)]
 pub struct PageTableEntry {
     pub bits: usize,
 }
 
-
 impl PageTableEntry {
-
-    pub fn new(ppn: PhyPageNum, flags: PTEFlags) -> Self{
-        PageTableEntry { 
-            bits: ppn.0 << 10 | flags.bits as usize, 
+    pub fn new(ppn: PhyPageNum, flags: PTEFlags) -> Self {
+        PageTableEntry {
+            bits: ppn.0 << 10 | flags.bits as usize,
         }
     }
 
     pub fn empty() -> Self {
-        PageTableEntry {
-            bits: 0
-        }
+        PageTableEntry { bits: 0 }
     }
 
     pub fn ppn(&self) -> PhyPageNum {
@@ -60,5 +53,3 @@ impl PageTableEntry {
         (self.flags() & PTEFlags::V) != PTEFlags::empty()
     }
 }
-
-

@@ -2,8 +2,6 @@ use alloc::vec::Vec;
 
 use super::address::PhyPageNum;
 
-
-
 /// 描述页帧管理器需要那些功能
 trait FrameAllocator {
     fn new() -> Self;
@@ -18,7 +16,7 @@ pub struct StackFrameAllocator {
     recycled: Vec<usize>,
 }
 
-impl FrameAllocator for StackFrameAllocator{
+impl FrameAllocator for StackFrameAllocator {
     fn new() -> Self {
         Self {
             current: 0,
@@ -28,27 +26,24 @@ impl FrameAllocator for StackFrameAllocator{
     }
 
     fn alloc(&mut self) -> Option<PhyPageNum> {
-        if let Some(ppn) = self.recycled.pop(){
+        if let Some(ppn) = self.recycled.pop() {
             Some(ppn.into())
-        }else {
+        } else {
             if self.current == self.end {
                 None
-            }else {
+            } else {
                 self.current += 1;
                 Some((self.current - 1).into())
             }
         }
-
     }
 
     fn dealloc(&mut self, ppn: PhyPageNum) {
         let ppn = ppn.0;
-        if ppn >= self.current || self.recycled.iter()
-        .find(|&v| {*v == ppn})
-        .is_some(){
+        if ppn >= self.current || self.recycled.iter().find(|&v| *v == ppn).is_some() {
             panic!("Frame ppn = {:#x} has not bean allocated", ppn)
         }
-        
+
         self.recycled.push(ppn);
     }
 }
@@ -65,9 +60,8 @@ use crate::{config::MEMORY_END, mm::address::PhyAddr, sync::UPSafeCell};
 type FrameAllocatorImpl = StackFrameAllocator;
 
 lazy_static! {
-    pub static ref FRAME_ALLOCATOR: UPSafeCell<FrameAllocatorImpl> = unsafe {
-        UPSafeCell::new(FrameAllocatorImpl::new())
-    };
+    pub static ref FRAME_ALLOCATOR: UPSafeCell<FrameAllocatorImpl> =
+        unsafe { UPSafeCell::new(FrameAllocatorImpl::new()) };
 }
 
 pub fn init_frame_allocator() {
@@ -75,7 +69,8 @@ pub fn init_frame_allocator() {
         fn ekernel();
     }
 
-    FRAME_ALLOCATOR.exclusive_access()
-        .init(PhyAddr::from(ekernel as usize).ceil(), PhyAddr::from(MEMORY_END).floor());
+    FRAME_ALLOCATOR.exclusive_access().init(
+        PhyAddr::from(ekernel as usize).ceil(),
+        PhyAddr::from(MEMORY_END).floor(),
+    );
 }
-
