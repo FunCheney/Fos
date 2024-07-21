@@ -1,3 +1,5 @@
+use core::fmt::Debug;
+
 use crate::config::{PAGE_SIZE, PAGE_SIZE_BITS};
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
@@ -11,6 +13,14 @@ pub struct PhyPageNum(pub usize);
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct VirtPageNum(pub usize);
+
+impl Debug for VirtAddr {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_fmt(format_args!("VA:{:#x}",Self.0))
+    }
+}
+
+
 
 const PA_WIDTH_SV39: usize = 56;
 const PPN_WIDTH_SV39: usize = PA_WIDTH_SV39 - PAGE_SIZE_BITS;

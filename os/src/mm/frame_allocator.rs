@@ -76,3 +76,61 @@ pub fn init_frame_allocator() {
         PhyAddr::from(MEMORY_END).floor(),
     );
 }
+
+
+pub struct FrameTracker {
+    pub ppn: PhyPageNum,
+}
+
+impl FrameTracker {
+    pub fn new(ppn: PhyPageNum) -> Self {
+        let bytes_array = ppn.get_bytes_array();
+        for i in bytes_array {
+            *i = 0;
+        }
+
+        Self {
+            ppn
+        }
+    }
+}
+
+pub fn frame_alloc() -> Option<FrameTracker> {
+   FRAME_ALLOCATOR.exclusive_access()
+       .alloc()
+       .map(|ppn| FrameTracker::new(ppn))
+}
+
+pub fn frame_dealloc(ppn: PhyPageNum) {
+    FRAME_ALLOCATOR.exclusive_access()
+        .dealloc(ppn);   
+}
+
+impl Drop for FrameTracker {
+    fn drop(&mut self) {
+        frame_dealloc(self.ppn);
+    }
+}
+
+#[allow(unused)]
+pub fn frame_alloc_test() {
+    let mut v:Vec<FrameTracker> = Vec::new();
+    for i in 0..5 {
+        let frame = frame_alloc().unwrap();
+        println!("{:?}", frame);
+
+        v.push(frame);
+    }
+
+    v.clear();
+
+    for i in 0..5  {
+        let frame = frame_alloc().unwrap();
+        println!("{:?}", frame);
+
+        v.push(frame);
+    }
+
+    drop(v);
+    println!("frame_alloc_test passred");
+}
