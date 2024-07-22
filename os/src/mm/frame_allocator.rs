@@ -1,3 +1,5 @@
+use core::fmt::Debug;
+
 use alloc::vec::Vec;
 
 use super::address::PhyPageNum;
@@ -95,6 +97,18 @@ impl FrameTracker {
     }
 }
 
+impl Debug for FrameTracker {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_fmt(format_args!("FrameTracker:PPN={:#x}",self.ppn.0))
+    }
+}
+
+impl Drop for FrameTracker {
+    fn drop(&mut self) {
+        frame_dealloc(self.ppn);
+    }
+}
+
 pub fn frame_alloc() -> Option<FrameTracker> {
    FRAME_ALLOCATOR.exclusive_access()
        .alloc()
@@ -104,12 +118,6 @@ pub fn frame_alloc() -> Option<FrameTracker> {
 pub fn frame_dealloc(ppn: PhyPageNum) {
     FRAME_ALLOCATOR.exclusive_access()
         .dealloc(ppn);   
-}
-
-impl Drop for FrameTracker {
-    fn drop(&mut self) {
-        frame_dealloc(self.ppn);
-    }
 }
 
 #[allow(unused)]
