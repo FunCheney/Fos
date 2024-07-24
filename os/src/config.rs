@@ -17,5 +17,7 @@ pub const PAGE_SIZE: usize = 0x1000;
 /// 物理内存的终止物理地址
 pub const MEMORY_END: usize = 0x80800000;
 
+pub const TRAMPOLINE: usize = usize::MAX - PAGE_SIZE + 1;
+
 pub use crate::board::CLOCK_FREQ;
 

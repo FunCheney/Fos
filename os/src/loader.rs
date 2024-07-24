@@ -5,6 +5,7 @@ use log::debug;
 use crate::config::*;
 use crate::trap::TrapContext;
 use core::arch::asm;
+use core::num;
 
 /// 内核栈
 #[repr(align(4096))]
@@ -101,4 +102,25 @@ pub fn init_app_cx(app_id: usize) -> usize {
         get_base_i(app_id),
         USER_STACK[app_id].get_sp(),
     ))
+}
+
+pub fn get_app_data(app_id: usize) -> &'static [u8] {
+    extern "C" {
+        fn _num_app();
+    }
+
+    let num_app_ptr = _num_app as usize as *const usize;
+    let num_app = get_num_app();
+    let app_start = unsafe {
+        core::slice::from_raw_parts(num_app_ptr.add(1), num_app + 1);
+    };
+
+    assert!(app_id < num_app);
+
+    unsafe {
+        core::slice::from_raw_parts(
+            app_start[app_id] as *const u8,
+            app_start[app_id + 1] - app_start[app_id]
+        )
+    }
 }
