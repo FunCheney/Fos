@@ -79,7 +79,6 @@ pub fn init_frame_allocator() {
     );
 }
 
-
 pub struct FrameTracker {
     pub ppn: PhyPageNum,
 }
@@ -91,15 +90,13 @@ impl FrameTracker {
             *i = 0;
         }
 
-        Self {
-            ppn
-        }
+        Self { ppn }
     }
 }
 
 impl Debug for FrameTracker {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_fmt(format_args!("FrameTracker:PPN={:#x}",self.ppn.0))
+        f.write_fmt(format_args!("FrameTracker:PPN={:#x}", self.ppn.0))
     }
 }
 
@@ -110,19 +107,19 @@ impl Drop for FrameTracker {
 }
 
 pub fn frame_alloc() -> Option<FrameTracker> {
-   FRAME_ALLOCATOR.exclusive_access()
-       .alloc()
-       .map(|ppn| FrameTracker::new(ppn))
+    FRAME_ALLOCATOR
+        .exclusive_access()
+        .alloc()
+        .map(|ppn| FrameTracker::new(ppn))
 }
 
 pub fn frame_dealloc(ppn: PhyPageNum) {
-    FRAME_ALLOCATOR.exclusive_access()
-        .dealloc(ppn);   
+    FRAME_ALLOCATOR.exclusive_access().dealloc(ppn);
 }
 
 #[allow(unused)]
 pub fn frame_alloc_test() {
-    let mut v:Vec<FrameTracker> = Vec::new();
+    let mut v: Vec<FrameTracker> = Vec::new();
     for i in 0..5 {
         let frame = frame_alloc().unwrap();
         println!("{:?}", frame);
@@ -132,7 +129,7 @@ pub fn frame_alloc_test() {
 
     v.clear();
 
-    for i in 0..5  {
+    for i in 0..5 {
         let frame = frame_alloc().unwrap();
         println!("{:?}", frame);
 

@@ -2,10 +2,16 @@ use core::future::join;
 
 use alloc::{borrow::ToOwned, collections::btree_map::BTreeMap, vec::Vec};
 
-use crate::{config::{MEMORY_END, PAGE_SIZE, TRAMPOLINE}, mm::address::VirtAddr};
+use crate::{
+    config::{MEMORY_END, PAGE_SIZE, TRAMPOLINE},
+    mm::address::VirtAddr,
+};
 
-use super::{address::{PhyAddr, PhyPageNum, VirtPageNum}, frame_allocator::{frame_alloc, FrameTracker}, page_table::{self, PTEFlags, PageTable}};
-
+use super::{
+    address::{PhyAddr, PhyPageNum, VirtPageNum},
+    frame_allocator::{frame_alloc, FrameTracker},
+    page_table::{self, PTEFlags, PageTable},
+};
 
 pub struct MapArea {
     vpn_range: VPNRange,
@@ -43,7 +49,7 @@ impl MemorySet {
     }
 
     pub fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) {
-        map_area.map(&mut  self.page_table);
+        map_area.map(&mut self.page_table);
 
         if let Some(data) = data {
             map_area.copy_data(&self.page_table, data);
@@ -53,20 +59,19 @@ impl MemorySet {
 
     pub fn inset_framed_area(
         &mut self,
-        strat_va: VirtAddr, end_va: VirtAddr, permission: MapPermission
+        strat_va: VirtAddr,
+        end_va: VirtAddr,
+        permission: MapPermission,
     ) {
-        self.push(MapArea::new(
-                strat_va,
-                end_va,
-                MapType::Framed,
-                permission,
-        ), None);
-        
+        self.push(
+            MapArea::new(strat_va, end_va, MapType::Framed, permission),
+            None,
+        );
     }
 
-    pub fn new_kernel() ->Self;
+    pub fn new_kernel() -> Self;
 
-    pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize);    
+    pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize);
 }
 
 impl MapArea {
@@ -74,8 +79,8 @@ impl MapArea {
         start_va: VirtAddr,
         end_va: VirtAddr,
         map_type: MapType,
-        map_perm: MapPermission
-    ) -> Self{
+        map_perm: MapPermission,
+    ) -> Self {
         let start_vpn: VirtPageNum = start_va.floor();
         let end_vpn: VirtPageNum = end_va.ceil();
         Self {
@@ -83,7 +88,7 @@ impl MapArea {
             data_frames: BTreeMap::new(),
             map_type,
             map_perm,
-        }  
+        }
     }
 
     pub fn map(&mut self, page_table: &mut PageTable) {
@@ -93,7 +98,7 @@ impl MapArea {
     }
 
     pub fn unmap(&mut self, page_table: &mut PageTable) {
-        for vpn in self.vpn_range  {
+        for vpn in self.vpn_range {
             self.unmap_one(page_table, vpn);
         }
     }
@@ -144,12 +149,11 @@ impl MapArea {
                 self.data_frames.remove(&vpn);
             }
 
-            _=> {}
+            _ => {}
         }
         page_table.unmap(vpn);
     }
 }
-
 
 extern "C" {
     fn stext();
@@ -165,7 +169,6 @@ extern "C" {
 }
 
 impl MemorySet {
-
     fn map_trampoline(&mut self) {
         self.page_table.map(
             VirtAddr::from(TRAMPOLINE).into(),
@@ -173,56 +176,74 @@ impl MemorySet {
             PTEFlags::R | PTEFlags::X,
         );
     }
-    
+
     pub fn new_kernel() -> Self {
-        let mut  memory_set = Self::new_bare();
+        let mut memory_set = Self::new_bare();
         memory_set.map_trampoline();
 
         println!(".text [{:#x}, {:#x})", stext as usize, etext as usize);
         println!(".rodata [{:#x}, {:#x})", srodata as usize, erodata as usize);
         println!(".data [{:#x}, {:#x})", sdata as usize, edata as usize);
-        println!(".bss [{:#x}, {:#x})", sbss_with_stack as usize, ebss as usize);
+        println!(
+            ".bss [{:#x}, {:#x})",
+            sbss_with_stack as usize, ebss as usize
+        );
         println!("Mapping .text section");
 
-        memory_set.push(MapArea::new(
+        memory_set.push(
+            MapArea::new(
                 (stext as usize).into(),
-                (etext as usize).into(), 
+                (etext as usize).into(),
                 MapType::Identical,
                 MapPermission::R | MapPermission::X,
-            ),None);
+            ),
+            None,
+        );
 
         println!("mapping ,rodata section");
 
-        memory_set.push(MapArea::new(
+        memory_set.push(
+            MapArea::new(
                 (srodata as usize).into(),
                 (erodata as usize).into(),
-                MapType::Identical, 
+                MapType::Identical,
                 MapPermission::R,
-            ),None);
+            ),
+            None,
+        );
 
         println!("mapping .data section");
-        memory_set.push(MapArea::new(
+        memory_set.push(
+            MapArea::new(
                 (sdata as usize).into(),
-                (edata as usize).into(), 
-                MapType::Identical, 
+                (edata as usize).into(),
+                MapType::Identical,
                 MapPermission::R | MapPermission::W,
-            ), None);
+            ),
+            None,
+        );
 
         println!("mapping ,bss section");
-        memory_set.push(MapArea::new(
+        memory_set.push(
+            MapArea::new(
                 (sbss_with_stack as usize).into(),
                 (ebss as usize).into(),
                 MapType::Identical,
                 MapPermission::R | MapPermission::W,
-            ), None);
+            ),
+            None,
+        );
 
         println!("mapping physcial memory");
-        memory_set.push(MapArea::new(
+        memory_set.push(
+            MapArea::new(
                 (ekernel as usize).into(),
                 MEMORY_END.into(),
                 MapType::Identical,
                 MapPermission::R | MapPermission::W,
-            ), None);
+            ),
+            None,
+        );
 
         memory_set
     }
@@ -236,7 +257,7 @@ impl MemorySet {
         assert_eq!(magic, [0x7f, 0x45, 0x4c, 0x46], "invalid elf!");
         let ph_count = elf_header.pt2.ph_count();
         let mut max_end_vpn = VirtPageNum(0);
-        for i in 0..ph_count  {
+        for i in 0..ph_count {
             let ph = elf.program_header(i).unwrap();
             if ph.get_type().unwrap() == xmas_elf::program::Type::Load {
                 let start_va: VirtAddr = (ph.virtual_addr() as usize).into();
