@@ -5,7 +5,6 @@ use log::debug;
 use crate::config::*;
 use crate::trap::TrapContext;
 use core::arch::asm;
-use core::num;
 
 /// 内核栈
 #[repr(align(4096))]

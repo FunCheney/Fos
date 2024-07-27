@@ -1,5 +1,6 @@
-use alloc::vec::Vec;
 use bitflags::*;
+use alloc::vec;
+use alloc::vec::Vec;
 
 use super::{
     address::{PhyPageNum, VirtPageNum},

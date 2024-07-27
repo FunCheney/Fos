@@ -1,16 +1,16 @@
-use core::future::join;
 
-use alloc::{borrow::ToOwned, collections::btree_map::BTreeMap, vec::Vec};
+use alloc::{collections::btree_map::BTreeMap, sync::Arc, vec::Vec};
+use lazy_static::*;
 
 use crate::{
     config::{MEMORY_END, PAGE_SIZE, TRAMPOLINE},
-    mm::address::VirtAddr,
+    mm::address::VirtAddr, sync::UPSafeCell,
 };
 
 use super::{
-    address::{PhyAddr, PhyPageNum, VirtPageNum},
+    address::{PhyAddr, PhyPageNum, VPNRange, VirtPageNum},
     frame_allocator::{frame_alloc, FrameTracker},
-    page_table::{self, PTEFlags, PageTable},
+    page_table::{PTEFlags, PageTable},
 };
 
 pub struct MapArea {
@@ -68,10 +68,6 @@ impl MemorySet {
             None,
         );
     }
-
-    pub fn new_kernel() -> Self;
-
-    pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize);
 }
 
 impl MapArea {
@@ -262,18 +258,18 @@ impl MemorySet {
             if ph.get_type().unwrap() == xmas_elf::program::Type::Load {
                 let start_va: VirtAddr = (ph.virtual_addr() as usize).into();
                 let end_va: VirtAddr = ((ph.virtual_addr() + ph.mem_size()) as usize).into();
-                let mut map_prem = MapPermission::U;
+                let mut map_perm = MapPermission::U;
                 let ph_flags = ph.flags();
                 if ph_flags.is_read() {
-                    map_prem |= MapPermission::R;
+                    map_perm |= MapPermission::R;
                 }
 
                 if ph_flags.is_write() {
-                    map_prem |= MapPermission::W;
+                    map_perm |= MapPermission::W;
                 }
 
-                if ph_flags.is_exceute() {
-                    map_prem |= MapPermission::X;
+                if ph_flags.is_execute() {
+                    map_perm |= MapPermission::X;
                 }
 
                 let map_area = MapArea::new(start_va, end_va, MapType::Framed, map_perm);

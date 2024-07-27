@@ -43,6 +43,9 @@ impl Debug for PhyPageNum {
 const PA_WIDTH_SV39: usize = 56;
 const PPN_WIDTH_SV39: usize = PA_WIDTH_SV39 - PAGE_SIZE_BITS;
 
+const VA_WIDTH_SV39: usize = 39;
+const VPN_WIDTH_SV39: usize = VA_WIDTH_SV39 - PAGE_SIZE_BITS;
+
 impl From<usize> for PhyAddr {
     fn from(value: usize) -> Self {
         Self(value & ((1 << PA_WIDTH_SV39) - 1))
@@ -52,6 +55,18 @@ impl From<usize> for PhyAddr {
 impl From<usize> for PhyPageNum {
     fn from(value: usize) -> Self {
         Self(value & ((1 << PPN_WIDTH_SV39) - 1))
+    }
+}
+
+impl From<usize> for VirtAddr{
+    fn from(value: usize) -> Self {
+        Self(value & ((1 << VA_WIDTH_SV39) - 1))
+    }
+}
+
+impl From<usize> for VirtPageNum {
+    fn from(value: usize) -> Self {
+        Self(value & ((1 << VPN_WIDTH_SV39) - 1))
     }
 }
 
@@ -67,9 +82,55 @@ impl From<PhyPageNum> for usize {
     }
 }
 
+impl VirtAddr {
+    pub fn floor(&self) -> VirtPageNum {
+        VirtPageNum(self.0 / PAGE_SIZE)
+    }
+
+    pub fn ceil(&self) -> VirtPageNum {
+        if self.0 == 0 {
+            VirtPageNum(0)
+        }else {
+            VirtPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE)
+        }
+    }
+}
+
+impl From<VirtAddr> for usize {
+    fn from(value: VirtAddr) -> Self {
+        if value.0 >= (1 << (VA_WIDTH_SV39 - 1)) {
+            value.0 | (!((1 << VA_WIDTH_SV39) - 1))
+        }else {
+            value.0
+        }
+    }
+}
+
+impl From<VirtPageNum> for usize {
+    fn from(value: VirtPageNum) -> Self {
+        value.0
+    }
+}
+
 impl PhyAddr {
+    pub fn floor(&self) -> PhyPageNum {
+        PhyPageNum(self.0 / PAGE_SIZE)
+    }
+    
+    pub fn ceil(&self) -> PhyPageNum {
+        if self.0 == 0 {
+            PhyPageNum(0)
+        }else {
+            PhyPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE)
+        }
+    }
+
     pub fn page_offser(&self) -> usize {
         self.0 & (PAGE_SIZE - 1)
+    }
+    
+    pub fn get_mut<T>(&self) -> &'static mut T {
+        unsafe { (self.0 as *mut T).as_mut().unwrap() }
     }
 }
 
@@ -86,18 +147,6 @@ impl From<PhyPageNum> for PhyAddr {
     }
 }
 
-impl PhyAddr {
-    pub fn floor(&self) -> PhyPageNum {
-        PhyPageNum(self.0 / PAGE_SIZE)
-    }
-    pub fn ceil(&self) -> PhyPageNum {
-        PhyPageNum((self.0 + PAGE_SIZE - 1) / PAGE_SIZE)
-    }
-
-    pub fn get_mut<T>(&self) -> &'static mut T {
-        unsafe { (self.0 as *mut T).as_mut().unwrap() }
-    }
-}
 
 impl PhyPageNum {
     pub fn get_pte_array(&self) -> &'static mut [PageTableEntry] {
@@ -127,3 +176,14 @@ impl VirtPageNum {
         idx
     }
 }
+
+pub struct SimpleRange<T> 
+where 
+     T: Copy + PartialOrd + PartialEq + Debug,
+{
+    current: T,
+    end: T,
+}
+
+
+pub type VPNRange = SimpleRange<VirtPageNum>;
