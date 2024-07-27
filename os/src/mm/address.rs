@@ -93,6 +93,10 @@ impl PhyAddr {
     pub fn ceil(&self) -> PhyPageNum {
         PhyPageNum((self.0 + PAGE_SIZE - 1) / PAGE_SIZE)
     }
+
+    pub fn get_mut<T>(&self) -> &'static mut T {
+        unsafe { (self.0 as *mut T).as_mut().unwrap() }
+    }
 }
 
 impl PhyPageNum {
@@ -109,12 +113,6 @@ impl PhyPageNum {
     pub fn get_mut<T>(&self) -> &'static mut T {
         let pa: PhyAddr = (*self).into();
         pa.get_mut()
-    }
-}
-
-impl PhyAddr {
-    pub fn get_mut<T>(&self) -> &'static mut T {
-        unsafe { (self.0 as *mut T).as_mut().unwrap() }
     }
 }
 
