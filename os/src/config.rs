@@ -19,6 +19,8 @@ pub const MEMORY_END: usize = 0x80800000;
 
 pub const TRAMPOLINE: usize = usize::MAX - PAGE_SIZE + 1;
 
+pub const TRAP_CONTEXT: usize = TRAMPOLINE - PAGE_SIZE;
+
 pub use crate::board::CLOCK_FREQ;
 
 pub fn kernel_stack_position(app_id: usize) ->(usize, usize) {
