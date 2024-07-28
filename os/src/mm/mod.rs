@@ -6,6 +6,10 @@ mod memory_set;
 mod page_table;
 
 pub use memory_set::KERNEL_SPACE;
+pub use memory_set::MapPermission;
+pub use memory_set::MemorySet;
+pub use address::{PhyPageNum, PhyAddr, VirtAddr, VirtPageNum};
+
 
 pub fn init() {
     heap_allocator::init_heap();

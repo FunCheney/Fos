@@ -1,13 +1,17 @@
 //! Types related to task manager
 
 use super::TaskContext;
+use crate::mm::{MemorySet, PhyPageNum};
 
-#[derive(Copy, Clone)]
 pub struct TaskControlBlock {
     pub task_status: TaskStatus,
     pub task_cx: TaskContext,
     pub user_time: usize,
-    pub kernel_time: usize
+    pub kernel_time: usize,
+    pub memory_set: MemorySet,
+    pub trap_cx_ppn: PhyPageNum,
+    pub base_size: usize,
+
 }
 
 

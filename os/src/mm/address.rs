@@ -82,20 +82,6 @@ impl From<PhyPageNum> for usize {
     }
 }
 
-impl VirtAddr {
-    pub fn floor(&self) -> VirtPageNum {
-        VirtPageNum(self.0 / PAGE_SIZE)
-    }
-
-    pub fn ceil(&self) -> VirtPageNum {
-        if self.0 == 0 {
-            VirtPageNum(0)
-        }else {
-            VirtPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE)
-        }
-    }
-}
-
 impl From<VirtAddr> for usize {
     fn from(value: VirtAddr) -> Self {
         if value.0 >= (1 << (VA_WIDTH_SV39 - 1)) {
@@ -112,28 +98,6 @@ impl From<VirtPageNum> for usize {
     }
 }
 
-impl PhyAddr {
-    pub fn floor(&self) -> PhyPageNum {
-        PhyPageNum(self.0 / PAGE_SIZE)
-    }
-    
-    pub fn ceil(&self) -> PhyPageNum {
-        if self.0 == 0 {
-            PhyPageNum(0)
-        }else {
-            PhyPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE)
-        }
-    }
-
-    pub fn page_offser(&self) -> usize {
-        self.0 & (PAGE_SIZE - 1)
-    }
-    
-    pub fn get_mut<T>(&self) -> &'static mut T {
-        unsafe { (self.0 as *mut T).as_mut().unwrap() }
-    }
-}
-
 impl From<PhyAddr> for PhyPageNum {
     fn from(value: PhyAddr) -> Self {
         assert_eq!(value.page_offser(), 0);
@@ -145,6 +109,42 @@ impl From<PhyPageNum> for PhyAddr {
     fn from(value: PhyPageNum) -> Self {
         Self(value.0 << PAGE_SIZE_BITS)
     }
+}
+
+impl From<VirtAddr> for VirtPageNum {
+   fn from(value: VirtAddr) -> Self {
+
+       value.floor()
+   } 
+
+}
+
+impl From<VirtPageNum> for VirtAddr {
+    fn from(value: VirtPageNum) -> Self {
+        Self(value.0 << PAGE_SIZE_BITS)
+    }
+}
+
+impl PhyAddr {
+pub fn floor(&self) -> PhyPageNum {
+    PhyPageNum(self.0 / PAGE_SIZE)
+}
+
+pub fn ceil(&self) -> PhyPageNum {
+    if self.0 == 0 {
+        PhyPageNum(0)
+    }else {
+        PhyPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE)
+    }
+}
+
+pub fn page_offser(&self) -> usize {
+    self.0 & (PAGE_SIZE - 1)
+}
+
+pub fn get_mut<T>(&self) -> &'static mut T {
+    unsafe { (self.0 as *mut T).as_mut().unwrap() }
+}
 }
 
 
@@ -164,6 +164,20 @@ impl PhyPageNum {
         pa.get_mut()
     }
 }
+impl VirtAddr {
+    pub fn floor(&self) -> VirtPageNum {
+        VirtPageNum(self.0 / PAGE_SIZE)
+    }
+
+    pub fn ceil(&self) -> VirtPageNum {
+        if self.0 == 0 {
+            VirtPageNum(0)
+        }else {
+            VirtPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE)
+        }
+    }
+}
+
 
 impl VirtPageNum {
     pub fn indexes(&self) -> [usize; 3] {
@@ -177,13 +191,99 @@ impl VirtPageNum {
     }
 }
 
-pub struct SimpleRange<T> 
-where 
-     T: Copy + PartialOrd + PartialEq + Debug,
-{
-    current: T,
-    end: T,
+pub trait StepByOne {
+   fn step (&mut self); 
+}
+
+impl StepByOne for VirtPageNum {
+    fn step (&mut self) {
+        self.0 += 1;
+    }
+}
+
+impl StepByOne for PhyPageNum {
+    fn step (&mut self) {
+        self.0 += 1;
+    }
 }
 
 
+#[derive(Clone, Copy)]
+pub struct SimpleRange<T> 
+where 
+     T: StepByOne+ Copy + PartialOrd + PartialEq + Debug,
+{
+    l: T,
+    r: T,
+}
+
+impl<T> SimpleRange<T>
+where 
+    T: StepByOne + Copy + PartialOrd + PartialEq + Debug
+{
+    pub fn new(start: T, end: T) -> Self{
+        assert!(start < end, "start {:?} ? end {:?}", start, end);
+        Self{
+           l: start,
+           r: end
+        }
+    }
+
+    pub fn get_start(&self) -> T {
+        self.l
+    }
+
+    pub fn get_end(&self) -> T{
+        self.r
+    }
+}
+
+impl<T> IntoIterator for SimpleRange<T> 
+where 
+    T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
+{
+   type Item = T;
+   type IntoIter = SimpleRangeIterator<T>;
+   fn into_iter(self) -> Self::IntoIter {
+       SimpleRangeIterator::new(self.l, self.r)
+   }
+}
+
+pub struct SimpleRangeIterator<T>
+where 
+     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
+{
+    current: T,
+    end: T
+}
+
+impl<T> SimpleRangeIterator<T>
+where 
+     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
+{
+    pub fn new(l: T, r: T) -> Self {
+
+        Self{
+            current: l,
+            end: r
+        }
+    }
+}
+
+impl<T> Iterator for SimpleRangeIterator<T>  
+where 
+    T: StepByOne + Copy + PartialEq + PartialOrd + Debug
+{
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current == self.end {
+            None
+        }else {
+            let t = self.current;
+            self.current.step();
+            Some(t)
+        }
+    }
+    
+}
 pub type VPNRange = SimpleRange<VirtPageNum>;

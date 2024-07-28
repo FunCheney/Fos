@@ -11,7 +11,7 @@
 	ld x\n, \n*8(sp)
 .endm
 
-	.section .text 
+	.section .text.trampoline
 	.global _alltraps
 	.global _restore
 	.align 2  # 将_alltraps 按照 4 字节对齐
@@ -26,7 +26,7 @@ _alltraps:
 	# allocate a TrapContext on kerner stack
 	# 在内核栈上保存 Trap 上下文，于是预先分配 34 * 8 字节的栈帧，
 	# 这里改动的是 sp ，说明确实是在内核栈上。
-	addi sp, sp, -34*8
+	#addi sp, sp, -34*8
 	# save general-purpose registers
 	# 跳过 x0 寄存器
 	sd x1, 1*8(sp)
@@ -51,24 +51,40 @@ _alltraps:
         # set input argument of trap_handler(cx: &mut TrapContext)
 	# 寄存器 a0 指向内核栈的栈指针保存的就是 Trap 上下文的地址，
 	# 接下来要调用 trap_handler 进行 Trap 处理，它的第一个参数 cx 由调用规范要从 a0 中获取
-        mv a0, sp
-        call trap_handler
+        # mv a0, sp
+        #call trap_handler
+        # load kernel_satp into t0
+        ld t0, 34*8(sp)
+        # load trap_handler into t1
+        ld t1, 36*8(sp)
+        # move to kernel_sp 
+        ld sp, 35*8(sp)
+        # switch to kernel space
+        csrw satp, t0
+        sfence.vma
+        # jump to trap_handler
+        jr t1 
 
 _restore:
 	# case1: start running app by _restore
 	# case2: back to U after handling trap
         # 这里要注意不再需要 mv sp, a0
 	# mv sp, a0
-	# now sp-> kernel stack[after allocate] sscrath -> User stack
+        # switch to user space
+        csrw satp, a1
+        sfence.vma
+        csrw sscrath, a0
+        mv sp, a0
+	# now sp points to TrapContext in user space, start restore based on it
 	# restore sstatus/sepc
 	ld t0, 32*8(sp)
 	ld t1, 33*8(sp)
-	ld t2, 2*8(sp)
+	#ld t2, 2*8(sp)
 	csrw sstatus,t0
 	csrw sepc,t1
-	csrw sscratch, t2
+	#csrw sscratch, t2
 	# restore general-purpose registers except sp/tp
-	ld x1, 3*8(sp)
+	ld x1, 1*8(sp)
 	ld x3, 3*8(sp)
 	.set n, 5
 	.rept 27
@@ -76,8 +92,10 @@ _restore:
 		.set n, n+1
 	.endr
 	# release TrapContext on kernel stack
-	addi sp, sp, 34*8
+	#addi sp, sp, 34*8
 	# now sp->kernel stack, sscratch->user stack
-	csrrw sp, sscratch, sp
+	#csrrw sp, sscratch, sp
+        # back to user stack
+        ld sp, 2*8(sp)
 	# sret 指令返回到 U 特权级继续运行应用程序控制流
 	sret

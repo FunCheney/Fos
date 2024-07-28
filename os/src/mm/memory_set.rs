@@ -1,16 +1,19 @@
 
+use core::arch::asm;
+
 use alloc::{collections::btree_map::BTreeMap, sync::Arc, vec::Vec};
 use lazy_static::*;
+use riscv::register::satp;
 
 use crate::{
     config::{MEMORY_END, PAGE_SIZE, TRAMPOLINE},
-    mm::address::VirtAddr, sync::UPSafeCell,
+    mm::{address::VirtAddr, memory_set}, sync::UPSafeCell,
 };
 
 use super::{
-    address::{PhyAddr, PhyPageNum, VPNRange, VirtPageNum},
+    address::{PhyAddr, PhyPageNum, VPNRange, VirtPageNum, StepByOne},
     frame_allocator::{frame_alloc, FrameTracker},
-    page_table::{PTEFlags, PageTable},
+    page_table::{PTEFlags, PageTable, PageTableEntry},
 };
 
 pub struct MapArea {
@@ -109,11 +112,11 @@ impl MapArea {
             let src = &data[start..len.min(start + PAGE_SIZE)];
             let dst = &mut page_table
                 .translate(current_vpn)
-                .unwarp()
+                .unwrap()
                 .ppn()
                 .get_bytes_array()[..src.len()];
             dst.copy_from_slice(src);
-            src += PAGE_SIZE;
+            start += PAGE_SIZE;
             if start > len {
                 break;
             }
@@ -245,7 +248,7 @@ impl MemorySet {
     }
 
     pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize) {
-        let memory_set = Self::new_bare();
+        let mut memory_set = Self::new_bare();
         memory_set.map_trampoline();
         let elf = xmas_elf::ElfFile::new(elf_data).unwrap();
         let elf_header = elf.header;
@@ -290,9 +293,47 @@ impl MemorySet {
             elf.header.pt2.entry_point() as usize,
         )
     }
+
+    pub fn activate(&self) {
+        let satp = self.page_table.token();
+        unsafe {
+            satp::write(satp);
+            asm!("sfence.vma");
+        }
+    }
+
+    pub fn translate(&self, vpn:VirtPageNum) -> Option<PageTableEntry> {
+        self.page_table.translate(vpn)
+    }
 }
 
 lazy_static! {
     pub static ref KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> =
         Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
 }
+
+#[allow(unused)]
+pub fn remap_test() {
+    let mut kernel_space = KERNEL_SPACE.exclusive_access();
+    let mid_text: VirtAddr = ((stext as usize + etext as usize) / 2).into();
+    let mid_rodata: VirtAddr = ((srodata as usize + erodata as usize) / 2).into();
+    let mid_data: VirtAddr = ((sdata as usize + edata as usize) / 2).into();
+    assert_eq!(
+        kernel_space.page_table.translate(mid_text.floor()).unwrap().writable(),
+        false,
+    );
+
+    assert_eq!(
+        kernel_space.page_table.translate(mid_rodata.floor()).unwrap().writable(),
+        false,
+    );
+
+    assert_eq!(
+        kernel_space.page_table.translate(mid_data.floor()).unwrap().executable(),
+        false,
+    );
+
+    println!("remap_test passed!");
+}
+
+
