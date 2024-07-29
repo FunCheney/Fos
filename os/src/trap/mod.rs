@@ -4,12 +4,14 @@
 /// 在批处理操作系统初始化时，我们需要修改 stvec 寄存器来指向正确的 Trap 处理入口点。
 mod context;
 
-use crate::task::{exit_current_run_next};
+use crate::config::TRAMPOLINE;
+use crate::task::{current_trap_cx, exit_current_run_next};
 // use crate::batch::run_next_app;
 //use crate::{syscall::syscall, task::{exit_current_run_next, suspend_current_and_run_next}};
 use crate::{syscall::syscall, task::suspend_current_and_run_next};
 use crate::timer::set_next_trigger;
-use core::arch::global_asm;
+use core::arch::{asm, global_asm};
+use core::panicking::panic;
 use log::{debug, error, info};
 use riscv::register::sie;
 use riscv::register::{
@@ -27,14 +29,21 @@ global_asm!(include_str!("trap.S"));
 
 pub fn init() {
     debug!("trap init call _alltraps in trap.S");
-    extern "C" {
-        fn _alltraps();
-    }
+    set_kernel_trap_entry();
+}
 
+fn set_kernel_trap_entry() {
     unsafe {
-        stvec::write(_alltraps as usize, TrapMode::Direct);
+        stvec::write(trap_from_kernel as usize, TrapMode::Direct);
     }
 }
+
+fn set_user_trap_entry() {
+    unsafe {
+        stvec::write(TRAMPOLINE as usize, TrapMode::Direct);
+    }
+}
+
 
 pub fn enable_timer_interrupt() {
     unsafe {
@@ -43,7 +52,7 @@ pub fn enable_timer_interrupt() {
 }
     
 #[no_mangle]
-pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
+pub fn trap_handler(cx: &mut TrapContext) -> ! {
     // 进入用户态的时候，可以统计用户态的运行时间
     crate::task::user_time_end();
 
@@ -96,7 +105,36 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
         }
     }
     crate::task::user_time_start();
-    cx
+    trap_return();
 }
+
+#[no_mangle]
+pub fn trap_return() -> ! {
+    set_user_trap_entry();
+    let trap_cx_ptr = TRAP_CONTEXT;
+    let user_trap = current_trap_cx();
+    extern "C" {
+        fn _alltraps();
+        fn _restore();
+    }
+
+    let restor_va = __restore as usize - _alltraps as usize + TRAMPOLINE;
+    unsafe {
+        asm!(
+            "fence.i",
+            "jr {restor_va}",
+            restor_va = in(reg) restor_va,
+            in("a0") trap_cx_ptr,
+            in("a1") user_trap,
+            options(noreturn)
+        );
+    }
+}
+
+#[no_mangle]
+pub fn trap_from_kernel() -> ! {
+    panic("a trap from kernel");
+}
+
 
 pub use context::TrapContext;

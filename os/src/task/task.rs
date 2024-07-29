@@ -1,7 +1,7 @@
 //! Types related to task manager
 
 use super::TaskContext;
-use crate::{config::{kernel_stack_position, TRAP_CONTEXT}, mm::{MapPermission, MemorySet, PhyPageNum, VirtAddr, KERNEL_SPACE}, trap::TrapContext};
+use crate::{config::{kernel_stack_position, TRAP_CONTEXT}, mm::{MapPermission, MemorySet, PhyPageNum, VirtAddr, KERNEL_SPACE}, trap::{trap_handler, TrapContext}};
 
 pub struct TaskControlBlock {
     pub task_status: TaskStatus,
@@ -50,7 +50,7 @@ impl TaskControlBlock {
             user_sp,
             KERNEL_SPACE.exclusive_access().token(),
             kernel_stack_top,
-            trap_handle as usize
+            trap_handler as usize
         );
         task_control_block
     }

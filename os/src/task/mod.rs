@@ -6,15 +6,17 @@ mod switch;
 #[allow(clippy::rodule_inception)]
 mod task;
 
+use core::borrow::Borrow;
+
 use crate::sbi::shutdown;
 use crate::sync::UPSafeCell;
 use crate::timer::{get_time_ms, get_time_us};
+use crate::trap::TrapContext;
+use alloc::vec::Vec;
 use lazy_static::*;
 use log::{debug, info};
 use task::{TaskControlBlock, TaskStatus};
 
-use crate::config::MAX_APP_SIZE;
-use crate::loader::{get_num_app, init_app_cx};
 pub use context::TaskContext;
 
 
@@ -33,7 +35,7 @@ pub struct TaskManager {
 
 struct TaskManagerInner {
     // 任务列表
-    tasks: [TaskControlBlock; MAX_APP_SIZE],
+    tasks: Vec<TaskControlBlock>,
     // 当前正在运行的任务Id
     current_task: usize,
     // 停表
@@ -53,18 +55,11 @@ lazy_static! {
     pub static ref TASK_MANAGER: TaskManager = {
         let num_app = get_num_app();
         debug!("TaskManager init get user apps {}", num_app);
-        let mut tasks = [TaskControlBlock {
-            task_cx: TaskContext::zero_init(),
-            task_status: TaskStatus::UnInit,
-            user_time: 0,
-            kernel_time: 0,
-        }; MAX_APP_SIZE];
+        let mut tasks: Vec<TaskControlBlock> = Vec::new(); 
 
-        for (i, task) in tasks.iter_mut().enumerate() {
-            task.task_cx = TaskContext::goto_restore(init_app_cx(i));
-            task.task_status = TaskStatus::Ready;
+        for i in 0..num_app {
+            tasks.push(TaskControlBlock::new(get_app_data(i), i));
         }
-
         TaskManager {
             num_app,
             inner: unsafe {
@@ -163,7 +158,26 @@ impl TaskManager {
     }
 
    
+    fn get_current_token(&self) -> usize {
+        let inner = self.inner.borrow();
+        let currnet = inner.current_task;
+        inner.tasks[currnet].get_user_token()
+    }
+
+    fn get_current_trap_cx(&self) -> &mut TrapContext {
+        let inner = self.inner.borrow();
+        let current = inner.current_task;
+        inner.tasks[current].get_trap_cx()
+    }
     
+}
+
+pub fn current_uset_token() -> usize {
+    TASK_MANAGER.get_current_token()
+}
+
+pub fn current_trap_cx() -> &'static mut TrapContext {
+    TASK_MANAGER.get_current_trap_cx()
 }
 
 /// 切换的开始时间
