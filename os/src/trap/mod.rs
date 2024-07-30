@@ -4,14 +4,14 @@
 /// 在批处理操作系统初始化时，我们需要修改 stvec 寄存器来指向正确的 Trap 处理入口点。
 mod context;
 
-use crate::config::TRAMPOLINE;
+use crate::config::{TRAMPOLINE, TRAP_CONTEXT};
 use crate::task::{current_trap_cx, exit_current_run_next};
 // use crate::batch::run_next_app;
 //use crate::{syscall::syscall, task::{exit_current_run_next, suspend_current_and_run_next}};
 use crate::{syscall::syscall, task::suspend_current_and_run_next};
 use crate::timer::set_next_trigger;
 use core::arch::{asm, global_asm};
-use core::panicking::panic;
+use core::panic;
 use log::{debug, error, info};
 use riscv::register::sie;
 use riscv::register::{
@@ -118,7 +118,7 @@ pub fn trap_return() -> ! {
         fn _restore();
     }
 
-    let restor_va = __restore as usize - _alltraps as usize + TRAMPOLINE;
+    let restor_va = _restore as usize - _alltraps as usize + TRAMPOLINE;
     unsafe {
         asm!(
             "fence.i",
@@ -133,7 +133,7 @@ pub fn trap_return() -> ! {
 
 #[no_mangle]
 pub fn trap_from_kernel() -> ! {
-    panic("a trap from kernel");
+    panic!("a trap from kernel");
 }
 
 

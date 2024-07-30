@@ -100,7 +100,7 @@ impl From<VirtPageNum> for usize {
 
 impl From<PhyAddr> for PhyPageNum {
     fn from(value: PhyAddr) -> Self {
-        assert_eq!(value.page_offser(), 0);
+        assert_eq!(value.page_offset(), 0);
         value.floor()
     }
 }
@@ -138,7 +138,7 @@ pub fn ceil(&self) -> PhyPageNum {
     }
 }
 
-pub fn page_offser(&self) -> usize {
+pub fn page_offset(&self) -> usize {
     self.0 & (PAGE_SIZE - 1)
 }
 
@@ -175,6 +175,10 @@ impl VirtAddr {
         }else {
             VirtPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE)
         }
+    }
+
+    pub fn page_offset(&self) -> usize {
+        self.0 & (PAGE_SIZE - 1)
     }
 }
 

@@ -1,7 +1,11 @@
 //! Types related to task manager
 
 use super::TaskContext;
-use crate::{config::{kernel_stack_position, TRAP_CONTEXT}, mm::{MapPermission, MemorySet, PhyPageNum, VirtAddr, KERNEL_SPACE}, trap::{trap_handler, TrapContext}};
+use crate::{
+    config::{kernel_stack_position, TRAP_CONTEXT},
+    mm::{MapPermission, MemorySet, PhyPageNum, VirtAddr, KERNEL_SPACE}, 
+    trap::{trap_handler, TrapContext}};
+
 
 pub struct TaskControlBlock {
     pub task_status: TaskStatus,
@@ -39,6 +43,8 @@ impl TaskControlBlock {
         let task_control_block = Self {
             task_status,
             task_cx: TaskContext::goto_trap_return(kernel_stack_top),
+            user_time: 0,
+            kernel_time: 0,
             memory_set,
             trap_cx_ppn,
             base_size: user_sp,
@@ -57,5 +63,9 @@ impl TaskControlBlock {
 
     pub fn get_trap_cx(&self) -> &'static mut TrapContext {
         self.trap_cx_ppn.get_mut()
+    }
+
+    pub fn get_user_token(&self) -> usize {
+        self.memory_set.token()
     }
 }

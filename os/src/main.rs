@@ -88,9 +88,10 @@ fn rust_main() -> ! {
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
     trap::init();
 
-        //batch::init();
-    info!("[kernel] load app start");
-    loader::load_app();
+     //batch::init();
+    //info!("[kernel] load app start");
+    //loader::load_app();
+
     info!("[kernel] enable timer interrupt");
     // 设置了 sie.stie 使得 S 特权级时钟不会被屏蔽
     trap::enable_timer_interrupt();

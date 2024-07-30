@@ -6,8 +6,7 @@ mod switch;
 #[allow(clippy::rodule_inception)]
 mod task;
 
-use core::borrow::Borrow;
-
+use crate::loader::{get_app_data, get_num_app};
 use crate::sbi::shutdown;
 use crate::sync::UPSafeCell;
 use crate::timer::{get_time_ms, get_time_us};
@@ -159,13 +158,13 @@ impl TaskManager {
 
    
     fn get_current_token(&self) -> usize {
-        let inner = self.inner.borrow();
+        let inner = self.inner.exclusive_access();
         let currnet = inner.current_task;
         inner.tasks[currnet].get_user_token()
     }
 
     fn get_current_trap_cx(&self) -> &mut TrapContext {
-        let inner = self.inner.borrow();
+        let inner = self.inner.exclusive_access();
         let current = inner.current_task;
         inner.tasks[current].get_trap_cx()
     }

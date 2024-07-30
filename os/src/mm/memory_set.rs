@@ -7,7 +7,7 @@ use riscv::register::satp;
 
 use crate::{
     config::{MEMORY_END, PAGE_SIZE, TRAMPOLINE},
-    mm::{address::VirtAddr, memory_set}, sync::UPSafeCell,
+    mm::{address::VirtAddr}, sync::UPSafeCell,
 };
 
 use super::{
@@ -49,6 +49,10 @@ impl MemorySet {
             page_table: PageTable::new(),
             areas: Vec::new(),
         }
+    }
+
+    pub fn token(&self) -> usize {
+        self.page_table.token()
     }
 
     pub fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) {
