@@ -1,4 +1,3 @@
-
 use core::arch::asm;
 
 use alloc::{collections::btree_map::BTreeMap, sync::Arc, vec::Vec};
@@ -7,11 +6,12 @@ use riscv::register::satp;
 
 use crate::{
     config::{MEMORY_END, PAGE_SIZE, TRAMPOLINE},
-    mm::{address::VirtAddr}, sync::UPSafeCell,
+    mm::address::VirtAddr,
+    sync::UPSafeCell,
 };
 
 use super::{
-    address::{PhyAddr, PhyPageNum, VPNRange, VirtPageNum, StepByOne},
+    address::{PhyAddr, PhyPageNum, StepByOne, VPNRange, VirtPageNum},
     frame_allocator::{frame_alloc, FrameTracker},
     page_table::{PTEFlags, PageTable, PageTableEntry},
 };
@@ -306,7 +306,7 @@ impl MemorySet {
         }
     }
 
-    pub fn translate(&self, vpn:VirtPageNum) -> Option<PageTableEntry> {
+    pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.page_table.translate(vpn)
     }
 }
@@ -323,21 +323,31 @@ pub fn remap_test() {
     let mid_rodata: VirtAddr = ((srodata as usize + erodata as usize) / 2).into();
     let mid_data: VirtAddr = ((sdata as usize + edata as usize) / 2).into();
     assert_eq!(
-        kernel_space.page_table.translate(mid_text.floor()).unwrap().writable(),
+        kernel_space
+            .page_table
+            .translate(mid_text.floor())
+            .unwrap()
+            .writable(),
         false,
     );
 
     assert_eq!(
-        kernel_space.page_table.translate(mid_rodata.floor()).unwrap().writable(),
+        kernel_space
+            .page_table
+            .translate(mid_rodata.floor())
+            .unwrap()
+            .writable(),
         false,
     );
 
     assert_eq!(
-        kernel_space.page_table.translate(mid_data.floor()).unwrap().executable(),
+        kernel_space
+            .page_table
+            .translate(mid_data.floor())
+            .unwrap()
+            .executable(),
         false,
     );
 
     println!("remap_test passed!");
 }
-
-
