@@ -73,7 +73,7 @@ _restore:
         # switch to user space
         csrw satp, a1
         sfence.vma
-        csrw sscrath, a0
+        csrw sscratch, a0
         mv sp, a0
 	# now sp points to TrapContext in user space, start restore based on it
 	# restore sstatus/sepc

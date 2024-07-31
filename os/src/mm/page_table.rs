@@ -95,11 +95,6 @@ impl PageTable {
         *pte = PageTableEntry::new(ppn, flags | PTEFlags::V);
     }
 
-    pub fn unmap(&mut self, vpn: VirtPageNum) {
-        let pte = self.find_pte(vpn).unwrap();
-        assert!(pte.is_valid(), "VPN {:?} is invalid before unmaping", vpn);
-        *pte = PageTableEntry::empty();
-    }
 
     fn find_pte_create(&mut self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
         let idxs = vpn.indexes();

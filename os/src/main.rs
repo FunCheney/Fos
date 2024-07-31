@@ -83,6 +83,7 @@ fn rust_main() -> ! {
 
     mm::init();
     mm::heap_test();
+    mm::remap_test();
  
 
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);

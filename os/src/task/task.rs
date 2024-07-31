@@ -14,6 +14,7 @@ pub struct TaskControlBlock {
     pub kernel_time: usize,
     pub memory_set: MemorySet,
     pub trap_cx_ppn: PhyPageNum,
+    #[allow(unused)]
     pub base_size: usize,
 
 }
@@ -21,6 +22,7 @@ pub struct TaskControlBlock {
 
 #[derive(Copy,Clone,PartialEq)]
 pub enum TaskStatus {
+    #[allow(unused)]
     UnInit, // 未初始化
     Ready, // 准备运行
     Running,// 正在运行

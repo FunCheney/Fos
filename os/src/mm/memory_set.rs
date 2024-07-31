@@ -100,12 +100,7 @@ impl MapArea {
         }
     }
 
-    pub fn unmap(&mut self, page_table: &mut PageTable) {
-        for vpn in self.vpn_range {
-            self.unmap_one(page_table, vpn);
-        }
-    }
-
+   
     pub fn copy_data(&mut self, page_table: &PageTable, data: &[u8]) {
         assert_eq!(self.map_type, MapType::Framed);
         let mut start: usize = 0;
@@ -146,17 +141,7 @@ impl MapArea {
         page_table.map(vpn, ppn, pte_flags);
     }
 
-    pub fn unmap_one(&mut self, page_table: &mut PageTable, vpn: VirtPageNum) {
-        match self.map_type {
-            MapType::Framed => {
-                self.data_frames.remove(&vpn);
-            }
-
-            _ => {}
-        }
-        page_table.unmap(vpn);
-    }
-}
+  }
 
 extern "C" {
     fn stext();
@@ -254,7 +239,7 @@ impl MemorySet {
     pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize) {
         let mut memory_set = Self::new_bare();
         memory_set.map_trampoline();
-        let elf = xmas_elf::ElfFile::new(elf_data).unwrap();
+        let elf = xmas_elf::ElfFile::new(elf_data).unwrap(); 
         let elf_header = elf.header;
         let magic = elf_header.pt1.magic;
         assert_eq!(magic, [0x7f, 0x45, 0x4c, 0x46], "invalid elf!");

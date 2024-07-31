@@ -20,3 +20,7 @@ pub fn init() {
 pub fn heap_test() {
     heap_allocator::heap_test();
 }
+
+pub fn remap_test() {
+    memory_set::remap_test();
+}
