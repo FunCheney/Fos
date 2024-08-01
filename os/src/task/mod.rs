@@ -52,12 +52,16 @@ impl TaskManagerInner {
 
 lazy_static! {
     pub static ref TASK_MANAGER: TaskManager = {
+        info!("init TASK_MANAGER");
         let num_app = get_num_app();
-        debug!("TaskManager init get user apps {}", num_app);
+        info!("TaskManager init get user apps {}", num_app);
         let mut tasks: Vec<TaskControlBlock> = Vec::new(); 
 
         for i in 0..num_app {
-            tasks.push(TaskControlBlock::new(get_app_data(i), i));
+            tasks.push(TaskControlBlock::new(
+                    get_app_data(i),
+                    i
+            ));
         }
         TaskManager {
             num_app,
