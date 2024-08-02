@@ -2,10 +2,11 @@ use core::arch::asm;
 
 use alloc::{collections::btree_map::BTreeMap, sync::Arc, vec::Vec};
 use lazy_static::*;
+use log::info;
 use riscv::register::satp;
 
 use crate::{
-    config::{MEMORY_END, PAGE_SIZE, TRAMPOLINE},
+    config::{MEMORY_END, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT, USER_STACK_SIZE},
     mm::address::VirtAddr,
     sync::UPSafeCell,
 };
@@ -156,11 +157,13 @@ impl MemorySet {
     }
 
     pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize) {
+        info!("from_elf into...");
         let mut memory_set = Self::new_bare();
         memory_set.map_trampoline();
         let elf = xmas_elf::ElfFile::new(elf_data).unwrap();
         let elf_header = elf.header;
         let magic = elf_header.pt1.magic;
+        info!("from_elf magic {:#?}", magic);
         assert_eq!(magic, [0x7f, 0x45, 0x4c, 0x46], "invalid elf!");
         let ph_count = elf_header.pt2.ph_count();
         let mut max_end_vpn = VirtPageNum(0);
@@ -195,13 +198,32 @@ impl MemorySet {
         let max_end_va: VirtAddr = max_end_vpn.into();
         let mut user_stack_bottom: usize = max_end_va.into();
         user_stack_bottom += PAGE_SIZE;
-        let
+        let user_stack_top = user_stack_bottom + USER_STACK_SIZE;
 
+        info!("user_stack_bottom {} user_stack_top {}", user_stack_bottom, user_stack_top);
+        memory_set.push(
+            MapArea::new(
+                user_stack_bottom.into(),
+                user_stack_top.into(),
+                MapType::Framed, 
+                MapPermission::R | MapPermission::W | MapPermission::U,
+                ),
+            None,
+        );
 
-
+        info!("Map Trap Context...");
+        memory_set.push(
+            MapArea::new(
+                TRAP_CONTEXT.into(), 
+                TRAMPOLINE.into(), 
+                MapType::Framed,
+                MapPermission::R | MapPermission::W,
+            ),
+            None,
+        );
         (
             memory_set,
-            user_stack_base,
+            user_stack_top,
             elf.header.pt2.entry_point() as usize,
         )
     }

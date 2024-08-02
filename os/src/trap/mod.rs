@@ -33,6 +33,7 @@ pub fn init() {
 }
 
 fn set_kernel_trap_entry() {
+    info!("set_kernel_trap_entry into");
     unsafe {
         stvec::write(trap_from_kernel as usize, TrapMode::Direct);
     }
@@ -52,10 +53,12 @@ pub fn enable_timer_interrupt() {
 }
     
 #[no_mangle]
-pub fn trap_handler(cx: &mut TrapContext) -> ! {
+pub fn trap_handler() -> ! {
+    info!("trap_handler into....");
+    set_kernel_trap_entry();
+    let cx = current_trap_cx();
     // 进入用户态的时候，可以统计用户态的运行时间
     crate::task::user_time_end();
-
     let scause = scause::read();
     let stval = stval::read();
     // 根据 scause 寄存器所保存的 Trap 原因进行分发处理
@@ -74,7 +77,11 @@ pub fn trap_handler(cx: &mut TrapContext) -> ! {
             cx.x[10] = syscall(cx.x[17], [cx.x[10], cx.x[11], cx.x[12]]) as usize;
         }
 
-        Trap::Exception(Exception::StoreFault) | Trap::Exception(Exception::StorePageFault) => {
+        Trap::Exception(Exception::StoreFault)
+         | Trap::Exception(Exception::StorePageFault)
+         | Trap::Exception(Exception::LoadFault)
+         | Trap::Exception(Exception::LoadPageFault)=> {
+
             info!("[Kernel] PageFault in app, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.", stval, cx.sepc);
             exit_current_run_next();
             //run_next_app();

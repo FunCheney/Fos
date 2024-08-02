@@ -84,7 +84,7 @@ fn rust_main() -> ! {
     mm::farme_allocator_test();
     mm::remap_test();
 
-    error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
+    error!("[kernel] .bss [{:#x}, {:#x}) ignore", sbss as usize, ebss as usize);
     trap::init();
 
     //batch::init();
@@ -97,7 +97,7 @@ fn rust_main() -> ! {
     info!("[kernel] set next trigger");
     // 设置了 10 ms 的计时器
     timer::set_next_trigger();
-    info!("[kernel] run_first_task");
+    info!("[kernel] run_task");
     task::run_first_task();
 
     //batch::run_next_app();

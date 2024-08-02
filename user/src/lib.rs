@@ -14,7 +14,8 @@ mod syscall;
 /// 定义了用户库的入口点 _start
 pub extern "C" fn _start() -> ! {
     // 手动清空需要零初始化的 .bss 段
-    clear_bss();
+    //clear_bss();
+
     // 然后调用 一个 main 函数的到一个类型值为 i32 的返回值，
     // 最后调用用户库提供的 exit 接口退出应用程序
     exit(main());
@@ -31,6 +32,8 @@ fn main() -> i32 {
     panic!("not found main");
 }
 
+
+#[allow(unused)]
 fn clear_bss() {
     extern "C" {
         fn start_bss();

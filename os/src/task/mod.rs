@@ -63,6 +63,7 @@ lazy_static! {
                     i
             ));
         }
+        info!("TASK_MANAGER loader apps...");
         TaskManager {
             num_app,
             inner: unsafe {
@@ -100,7 +101,7 @@ impl TaskManager {
     fn run_first_task(&self) -> ! {
         let mut inner = self.inner.exclusive_access();
         let task0 = &mut inner.tasks[0];
-        debug!("run_first_task task0");
+        info!("run_first_task task0");
         task0.task_status = TaskStatus::Running;
         let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
         // 开始记录时间
@@ -108,14 +109,14 @@ impl TaskManager {
         drop(inner);
         let mut _unused = TaskContext::zero_init();
         unsafe {
-            debug!("_switch next_task_cx_ptr start");
+            info!("_switch next_task_cx_ptr start");
             __switch(&mut _unused as *mut TaskContext, next_task_cx_ptr);
         }
         panic!("unreachable in run_first_task!");
     }
 
     pub fn run_next_task(&self) {
-        debug!("run_next_task  into...");
+        info!("run_next_task  into...");
         if let Some(next) = self.find_next_task() {
             let mut inner = self.inner.exclusive_access();
             let current = inner.current_task;
