@@ -21,6 +21,10 @@ pub fn heap_test() {
     heap_allocator::heap_test();
 }
 
+pub fn farme_allocator_test() {
+    frame_allocator::frame_alloc_test();
+}
+
 pub fn remap_test() {
     memory_set::remap_test();
 }

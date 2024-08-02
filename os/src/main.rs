@@ -17,17 +17,16 @@ mod config;
 mod lang_items;
 mod loader;
 mod logging;
+mod mm;
 mod sbi;
 mod stack_trace;
 mod sync;
 pub mod syscall;
 mod task;
 mod timer;
-mod mm;
 pub mod trap;
 
 extern crate alloc;
-
 
 #[macro_use]
 extern crate bitflags;
@@ -79,17 +78,16 @@ fn rust_main() -> ! {
         "[kernel] boot_stack top=bottom={:#x}, lower_bound={:#x}",
         boot_stack_top as usize, boot_stack_lower_bound as usize
     );
-     
 
     mm::init();
     mm::heap_test();
+    mm::farme_allocator_test();
     mm::remap_test();
- 
 
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
     trap::init();
 
-     //batch::init();
+    //batch::init();
     //info!("[kernel] load app start");
     //loader::load_app();
 
@@ -102,7 +100,7 @@ fn rust_main() -> ! {
     info!("[kernel] run_first_task");
     task::run_first_task();
 
-   //batch::run_next_app();
+    //batch::run_next_app();
 
     panic!("unreachable in rust main");
 }

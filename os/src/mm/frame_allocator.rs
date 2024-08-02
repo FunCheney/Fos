@@ -1,9 +1,6 @@
-use core::fmt::Debug;
-
-use alloc::vec::Vec;
-
 use super::address::PhyPageNum;
-
+use alloc::vec::Vec;
+use core::fmt::Debug;
 use lazy_static::*;
 
 /// 描述页帧管理器需要那些功能
@@ -110,7 +107,7 @@ pub fn frame_alloc() -> Option<FrameTracker> {
     FRAME_ALLOCATOR
         .exclusive_access()
         .alloc()
-        .map(|ppn| FrameTracker::new(ppn))
+        .map(FrameTracker::new)
 }
 
 pub fn frame_dealloc(ppn: PhyPageNum) {
