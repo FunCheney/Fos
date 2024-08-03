@@ -5,13 +5,10 @@
 mod context;
 
 use crate::config::{TRAMPOLINE, TRAP_CONTEXT};
-use crate::task::{current_trap_cx, exit_current_run_next};
-// use crate::batch::run_next_app;
-//use crate::{syscall::syscall, task::{exit_current_run_next, suspend_current_and_run_next}};
+use crate::task::{current_trap_cx, current_uset_token, exit_current_run_next};
 use crate::{syscall::syscall, task::suspend_current_and_run_next};
 use crate::timer::set_next_trigger;
 use core::arch::{asm, global_asm};
-use core::panic;
 use log::{debug, error, info};
 use riscv::register::sie;
 use riscv::register::{
@@ -28,12 +25,10 @@ use riscv::register::{
 global_asm!(include_str!("trap.S"));
 
 pub fn init() {
-    debug!("trap init call _alltraps in trap.S");
     set_kernel_trap_entry();
 }
 
 fn set_kernel_trap_entry() {
-    info!("set_kernel_trap_entry into");
     unsafe {
         stvec::write(trap_from_kernel as usize, TrapMode::Direct);
     }
@@ -54,7 +49,6 @@ pub fn enable_timer_interrupt() {
     
 #[no_mangle]
 pub fn trap_handler() -> ! {
-    info!("trap_handler into....");
     set_kernel_trap_entry();
     let cx = current_trap_cx();
     // 进入用户态的时候，可以统计用户态的运行时间
@@ -119,20 +113,20 @@ pub fn trap_handler() -> ! {
 pub fn trap_return() -> ! {
     set_user_trap_entry();
     let trap_cx_ptr = TRAP_CONTEXT;
-    let user_trap = current_trap_cx();
+    let user_trap = current_uset_token();
     extern "C" {
-        fn _alltraps();
-        fn _restore();
+        fn __alltraps();
+        fn __restore();
     }
 
-    let restor_va = _restore as usize - _alltraps as usize + TRAMPOLINE;
+    let restore_va = __restore as usize - __alltraps as usize + TRAMPOLINE;
     unsafe {
         asm!(
             "fence.i",
-            "jr {restor_va}",
-            restor_va = in(reg) restor_va,
-            in("a0") trap_cx_ptr,
-            in("a1") user_trap,
+            "jr {restore_va}",     // jump to new addr of _restore asm function
+            restore_va = in(reg) restore_va,
+            in("a0") trap_cx_ptr,     // a0 = virt addr of trap Context
+            in("a1") user_trap,       // a1 = phy addr of user page table
             options(noreturn)
         );
     }

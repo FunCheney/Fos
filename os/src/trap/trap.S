@@ -12,11 +12,11 @@
 .endm
 
 	.section .text.trampoline
-	.global _alltraps
-	.global _restore
+	.global __alltraps
+	.global __restore
 	.align 2  # 将_alltraps 按照 4 字节对齐
 
-_alltraps:
+__alltraps:
 	csrrw sp, sscratch, sp  # 将 CSR 当前集训器的值读到通用寄存器 rd 中，
 				# 然后将通用寄存器 rs 的值写入到 CSR 中。
 				# 因此这里起到的是交换 sscratch 和 sp 的效果。
@@ -65,7 +65,7 @@ _alltraps:
         # jump to trap_handler
         jr t1 
 
-_restore:
+__restore:
 	# case1: start running app by _restore
 	# case2: back to U after handling trap
         # 这里要注意不再需要 mv sp, a0

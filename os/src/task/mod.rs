@@ -13,7 +13,7 @@ use crate::timer::{get_time_ms, get_time_us};
 use crate::trap::TrapContext;
 use alloc::vec::Vec;
 use lazy_static::*;
-use log::{debug, info};
+use log::{info, warn};
 use task::{TaskControlBlock, TaskStatus};
 
 pub use context::TaskContext;
@@ -54,7 +54,6 @@ lazy_static! {
     pub static ref TASK_MANAGER: TaskManager = {
         info!("init TASK_MANAGER");
         let num_app = get_num_app();
-        info!("TaskManager init get user apps {}", num_app);
         let mut tasks: Vec<TaskControlBlock> = Vec::new(); 
 
         for i in 0..num_app {
@@ -63,7 +62,7 @@ lazy_static! {
                     i
             ));
         }
-        info!("TASK_MANAGER loader apps...");
+        warn!("TASK_MANAGER loader apps = {}", num_app);
         TaskManager {
             num_app,
             inner: unsafe {
@@ -81,7 +80,6 @@ impl TaskManager {
     fn mark_current_suspended(&self) {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
-        debug!("task {} suppended", current);
         // 统计内核时间
         inner.tasks[current].kernel_time += inner.refresh_stop_watch();
         inner.tasks[current].task_status = TaskStatus::Ready;
@@ -90,7 +88,6 @@ impl TaskManager {
     fn mark_current_exited(&self) {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
-        debug!("task {} exited", current);
         // 统计内核时间并输出
         inner.tasks[current].kernel_time += inner.refresh_stop_watch();
         println!("[task {} exited. user_time {} ms, kernel_time {} ms]",
@@ -101,7 +98,6 @@ impl TaskManager {
     fn run_first_task(&self) -> ! {
         let mut inner = self.inner.exclusive_access();
         let task0 = &mut inner.tasks[0];
-        info!("run_first_task task0");
         task0.task_status = TaskStatus::Running;
         let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
         // 开始记录时间
@@ -109,14 +105,12 @@ impl TaskManager {
         drop(inner);
         let mut _unused = TaskContext::zero_init();
         unsafe {
-            info!("_switch next_task_cx_ptr start");
             __switch(&mut _unused as *mut TaskContext, next_task_cx_ptr);
         }
         panic!("unreachable in run_first_task!");
     }
 
     pub fn run_next_task(&self) {
-        info!("run_next_task  into...");
         if let Some(next) = self.find_next_task() {
             let mut inner = self.inner.exclusive_access();
             let current = inner.current_task;
@@ -126,15 +120,14 @@ impl TaskManager {
             let next_task_cx_ptr = &inner.tasks[next].task_cx as *const TaskContext;
             drop(inner);
             if current != next {
-                info!("[kernel] task switch from {} to {}", current, next);
+                warn!("[kernel] task switch from {} to {}", current, next);
             }
             unsafe {
-                debug!("_switch run_next_task cur next ");
                 __switch(current_task_cx_ptr, next_task_cx_ptr);
             }
         } else {
-            info!("All application completed");
-            info!("task switch time: {} us", self::get_switch_time_count());
+            println!("All application completed");
+            println!("task switch time: {} us", self::get_switch_time_count());
             shutdown(false);
         }
     }
@@ -207,13 +200,11 @@ fn get_switch_time_count() -> usize {
 }
 
 pub fn exit_current_run_next() {
-    debug!("task mod call exit_current_run_next");
     mark_current_exited();
     run_next_task();
 }
 
 pub fn suspend_current_and_run_next() {
-    debug!("task mod call suspend_current_and_run_next");
     mark_current_suspended();
     run_next_task();
 }
@@ -221,7 +212,6 @@ pub fn run_first_task() {
     TASK_MANAGER.run_first_task();
 }
 pub fn run_next_task() {
-    debug!("task mod call run_next_task");
     TASK_MANAGER.run_next_task();
 } 
 

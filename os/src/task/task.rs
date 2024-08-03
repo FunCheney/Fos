@@ -1,12 +1,11 @@
 //! Types related to task manager
 
 
-use log::info;
 
 use super::TaskContext;
 use crate::{
     config::{kernel_stack_position, TRAP_CONTEXT},
-    mm::{MapPermission, MemorySet, PhyPageNum, VirtAddr, KERNEL_SPACE}, 
+    mm::{MapPermission, MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE}, 
     trap::{trap_handler, TrapContext}};
 
 
@@ -16,7 +15,7 @@ pub struct TaskControlBlock {
     pub user_time: usize,
     pub kernel_time: usize,
     pub memory_set: MemorySet,
-    pub trap_cx_ppn: PhyPageNum,
+    pub trap_cx_ppn: PhysPageNum,
     #[allow(unused)]
     pub base_size: usize,
     #[allow(unused)]
@@ -39,7 +38,6 @@ pub enum TaskStatus {
 impl TaskControlBlock {
     pub fn new(elf_data: &[u8], app_id: usize) -> Self {
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
-        info!("TaskControlBlock info user_sp {}, entry_point {}", user_sp, entry_point);
         let trap_cx_ppn = memory_set
             .translate(VirtAddr::from(TRAP_CONTEXT).into())
             .unwrap()
@@ -49,7 +47,7 @@ impl TaskControlBlock {
         let (kernel_stack_bottom, kernel_stack_top) = kernel_stack_position(app_id);
         KERNEL_SPACE
             .exclusive_access()
-            .inset_framed_area(
+            .insert_framed_area(
                 kernel_stack_bottom.into(), 
                 kernel_stack_top.into(),
                 MapPermission::R | MapPermission::W,
