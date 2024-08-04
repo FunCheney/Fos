@@ -20,7 +20,7 @@ unsafe fn main() -> i32 {
         S[next] = S[cur] * p % m;
         cur = next;
         if i % 10000 == 0 {
-            println!("power_3 {} ", i);
+            print!("power_3 {} ", i);
         }
     }
     println!("Test power_3 OK!");
