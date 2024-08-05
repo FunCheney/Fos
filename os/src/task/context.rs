@@ -6,6 +6,8 @@ use log::debug;
 #[derive(Clone, Copy)]
 #[repr(C)]
 pub struct TaskContext {
+    // 记录了 _switch 函数返回之后，程序应该跳到那里执行
+    // 从而在任务完成切换并 ret 之后能到正确的位置
     ra: usize,
     sp: usize,
     s: [usize; 12],
