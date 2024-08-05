@@ -17,8 +17,6 @@ use crate::config::MAX_APP_SIZE;
 use crate::loader::{get_num_app, init_app_cx};
 pub use context::TaskContext;
 
-
-
 pub struct TaskManager {
     // 任务管理器管理的任务数目，TaskManager 初始化之后就不会在变化
     num_app: usize,
@@ -38,7 +36,6 @@ struct TaskManagerInner {
     current_task: usize,
     // 停表
     stop_watch: usize,
- 
 }
 
 impl TaskManagerInner {
@@ -51,8 +48,10 @@ impl TaskManagerInner {
 
 lazy_static! {
     pub static ref TASK_MANAGER: TaskManager = {
+        // 获取链接到内核中的应用总数，loader 模块提供
         let num_app = get_num_app();
         debug!("TaskManager init get user apps {}", num_app);
+        // 创建一个 tasks 数组，其中每个任务都是 UnInit 表述尚未初始化
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
@@ -60,11 +59,15 @@ lazy_static! {
             kernel_time: 0,
         }; MAX_APP_SIZE];
 
+        // 对每一个任务控制块进行初始化，
         for (i, task) in tasks.iter_mut().enumerate() {
+            // 初始化其上下文
             task.task_cx = TaskContext::goto_restore(init_app_cx(i));
+            // 设置其状态为 Ready
             task.task_status = TaskStatus::Ready;
         }
 
+        // 创建 TaskManager 实例并返回
         TaskManager {
             num_app,
             inner: unsafe {
@@ -94,8 +97,10 @@ impl TaskManager {
         debug!("task {} exited", current);
         // 统计内核时间并输出
         inner.tasks[current].kernel_time += inner.refresh_stop_watch();
-        println!("[task {} exited. user_time {} ms, kernel_time {} ms]",
-                 current, inner.tasks[current].user_time, inner.tasks[current].kernel_time);
+        println!(
+            "[task {} exited. user_time {} ms, kernel_time {} ms]",
+            current, inner.tasks[current].user_time, inner.tasks[current].kernel_time
+        );
         inner.tasks[current].task_status = TaskStatus::Exited;
     }
 
@@ -148,7 +153,7 @@ impl TaskManager {
             .find(|id| inner.tasks[*id].task_status == TaskStatus::Ready)
     }
 
-        /// 统计内核时间，从现在开始算的是用户时间
+    /// 统计内核时间，从现在开始算的是用户时间
     fn user_time_start(&self) {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
@@ -161,9 +166,6 @@ impl TaskManager {
         let current = inner.current_task;
         inner.tasks[current].user_time += inner.refresh_stop_watch();
     }
-
-   
-    
 }
 
 /// 切换的开始时间
@@ -174,7 +176,6 @@ static mut SWITCH_TIME_COUNT: usize = 0;
 
 /// 包装 __switch 函数，所有的任务切换都会经过 __switch, 统计它的运行开销
 unsafe fn __switch(current_task_cx_ptr: *mut TaskContext, next_task_cx_ptr: *const TaskContext) {
-
     SWITCH_TIME_START = get_time_us();
     crate::task::switch::__switch(current_task_cx_ptr, next_task_cx_ptr);
 
@@ -183,9 +184,7 @@ unsafe fn __switch(current_task_cx_ptr: *mut TaskContext, next_task_cx_ptr: *con
 
 /// 获取总的切换时间
 fn get_switch_time_count() -> usize {
-    unsafe { 
-        SWITCH_TIME_COUNT
-    }
+    unsafe { SWITCH_TIME_COUNT }
 }
 
 pub fn exit_current_run_next() {
@@ -205,16 +204,15 @@ pub fn run_first_task() {
 pub fn run_next_task() {
     debug!("task mod call run_next_task");
     TASK_MANAGER.run_next_task();
-} 
+}
 
 fn mark_current_exited() {
     TASK_MANAGER.mark_current_exited();
 }
-    
+
 fn mark_current_suspended() {
     TASK_MANAGER.mark_current_suspended();
-}    
-
+}
 
 pub fn user_time_start() {
     TASK_MANAGER.user_time_start()
