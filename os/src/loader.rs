@@ -66,6 +66,7 @@ pub fn load_app() {
     }
     // load apps
     for i in 0..num_app {
+        // 第 i 个应用被加载到地址 base_i 为起始的物理地址上
         let base_i = get_base_i(i);
         debug!("loader app base_i {}", base_i);
         // clear region
