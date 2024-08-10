@@ -17,6 +17,7 @@ use crate::config::MAX_APP_SIZE;
 use crate::loader::{get_num_app, init_app_cx};
 pub use context::TaskContext;
 pub use task::TaskInfo;
+pub use task::SyscallInfo;
 
 pub struct TaskManager {
     // 任务管理器管理的任务数目，TaskManager 初始化之后就不会在变化

@@ -2,12 +2,14 @@
 use log::debug;
 use log::info;
 
+use crate::config::MAX_SYS_CALL_NUM;
 // use crate::batch::run_next_app;
 use crate::task::exit_current_run_next;
 use crate::task::get_current_task_info;
 use crate::task::suspend_current_and_run_next;
 use crate::timer::get_time_ms;
 use crate::task::TaskInfo;
+use crate::task::SyscallInfo;
 
 /// task exits and submit an exit code
 pub fn sys_exit(exit_code: i32) -> ! {
@@ -34,7 +36,13 @@ pub fn sys_task_info(id: usize, ts: *mut TaskInfo) -> isize {
         *ts = TaskInfo {
             id: id,
             status: task_block.task_status,
-            call:
+            call: [SyscallInfo {
+                id: id,
+                times: sys_get_time() as usize,
+            }; MAX_SYS_CALL_NUM],
+            time: task_block.kernel_time + task_block.user_time, 
         }
-    }
+    };
+
+    0
 }
