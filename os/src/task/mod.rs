@@ -226,6 +226,17 @@ pub fn user_time_end() {
 
 pub fn get_current_task_info() -> TaskControlBlock {
     let inner = TASK_MANAGER.inner.exclusive_access();
-    let currnet = inner.current_task;
-    inner.tasks[currnet]
+    let current = inner.current_task;
+    inner.tasks[current]
+}
+
+pub fn get_current_task_id() -> usize {
+    let inner = TASK_MANAGER.inner.exclusive_access();
+    inner.current_task
+}
+
+pub fn update_task_syscall_times(syscall_id: usize) {
+    let mut inner = TASK_MANAGER.inner.exclusive_access();
+    let current = inner.current_task;
+
 }

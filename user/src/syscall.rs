@@ -1,6 +1,5 @@
 use core::arch::asm;
 
-use super::task::TaskInfo;
 pub const SYSCALL_WRITE: usize = 64;
 pub const SYSCALL_EXIT: usize = 93;
 pub const SYSCALL_YIELD: usize = 124;
@@ -68,6 +67,6 @@ pub fn sys_get_time() -> isize{
 }
 
 
-pub fn sys_get_task_info(ti: &TaskInfo) -> isize {
+pub fn sys_get_task_info() -> isize {
     syscall(SYSCALL_TASK_INFO, [0, 0, 0])
 }

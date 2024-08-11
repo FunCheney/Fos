@@ -69,7 +69,6 @@ pub fn get_time() -> isize {
     sys_get_time()
 }
 
-/// 
-pub fn task_info(ti: &Ta) -> isize {
-    sys_get_task_info(ti)
+pub fn task_info() -> isize {
+    sys_get_task_info()
 }
