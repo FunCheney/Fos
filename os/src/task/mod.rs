@@ -39,7 +39,6 @@ struct TaskManagerInner {
     current_task: usize,
     // 停表
     stop_watch: usize,
- 
 }
 
 impl TaskManagerInner {
@@ -54,7 +53,7 @@ lazy_static! {
     pub static ref TASK_MANAGER: TaskManager = {
         info!("init TASK_MANAGER");
         let num_app = get_num_app();
-        let mut tasks: Vec<TaskControlBlock> = Vec::new(); 
+        let mut tasks: Vec<TaskControlBlock> = Vec::new();
 
         for i in 0..num_app {
             tasks.push(TaskControlBlock::new(
@@ -140,7 +139,7 @@ impl TaskManager {
             .find(|id| inner.tasks[*id].task_status == TaskStatus::Ready)
     }
 
-        /// 统计内核时间，从现在开始算的是用户时间
+    /// 统计内核时间，从现在开始算的是用户时间
     fn user_time_start(&self) {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
@@ -154,7 +153,7 @@ impl TaskManager {
         inner.tasks[current].user_time += inner.refresh_stop_watch();
     }
 
-   
+
     fn get_current_token(&self) -> usize {
         let inner = self.inner.exclusive_access();
         let currnet = inner.current_task;
@@ -166,7 +165,7 @@ impl TaskManager {
         let current = inner.current_task;
         inner.tasks[current].get_trap_cx()
     }
-    
+
 }
 
 pub fn current_uset_token() -> usize {
@@ -194,7 +193,7 @@ unsafe fn __switch(current_task_cx_ptr: *mut TaskContext, next_task_cx_ptr: *con
 
 /// 获取总的切换时间
 fn get_switch_time_count() -> usize {
-    unsafe { 
+    unsafe {
         SWITCH_TIME_COUNT
     }
 }
@@ -213,16 +212,15 @@ pub fn run_first_task() {
 }
 pub fn run_next_task() {
     TASK_MANAGER.run_next_task();
-} 
+}
 
 fn mark_current_exited() {
     TASK_MANAGER.mark_current_exited();
 }
-    
+
 fn mark_current_suspended() {
     TASK_MANAGER.mark_current_suspended();
-}    
-
+}
 
 pub fn user_time_start() {
     TASK_MANAGER.user_time_start()

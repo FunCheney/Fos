@@ -5,13 +5,16 @@
 use super::TaskContext;
 use crate::{
     config::{kernel_stack_position, TRAP_CONTEXT},
-    mm::{MapPermission, MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE}, 
+    mm::{MapPermission, MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE},
     trap::{trap_handler, TrapContext}};
 
 
 pub struct TaskControlBlock {
+    // 任务状态
     pub task_status: TaskStatus,
+    // 任务上下文
     pub task_cx: TaskContext,
+    // 用户态时间
     pub user_time: usize,
     pub kernel_time: usize,
     pub memory_set: MemorySet,
@@ -26,7 +29,7 @@ pub struct TaskControlBlock {
 }
 
 
-#[derive(Copy,Clone,PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum TaskStatus {
     #[allow(unused)]
     UnInit, // 未初始化
@@ -48,7 +51,7 @@ impl TaskControlBlock {
         KERNEL_SPACE
             .exclusive_access()
             .insert_framed_area(
-                kernel_stack_bottom.into(), 
+                kernel_stack_bottom.into(),
                 kernel_stack_top.into(),
                 MapPermission::R | MapPermission::W,
             );
