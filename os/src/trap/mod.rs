@@ -4,7 +4,7 @@
 /// 在批处理操作系统初始化时，我们需要修改 stvec 寄存器来指向正确的 Trap 处理入口点。
 mod context;
 
-use crate::task::{exit_current_run_next};
+use crate::task::{exit_current_run_next, update_task_syscall_times};
 // use crate::batch::run_next_app;
 //use crate::{syscall::syscall, task::{exit_current_run_next, suspend_current_and_run_next}};
 use crate::{syscall::syscall, task::suspend_current_and_run_next};
@@ -53,6 +53,8 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
     match scause.cause() {
         // 发现触发 Trap 的原因是来自 U 特权级的 Environment Call，也就是系统调用
         Trap::Exception(Exception::UserEnvCall) => {
+            let syscall_id = cx.x[17];
+            update_task_syscall_times(syscall_id);
             // 首先修改保存在内核栈上的 Trap 上下文里面 sepc，让其增加 4
             // 因为我们知道这是一个由 ecall 指令触发的系统调用，在进入 Trap 的时候，
             // 硬件会将 sepc 设置为这条 ecall 指令所在的地址（因为它是进入 Trap 之前最后一条执行的指令）。

@@ -16,6 +16,8 @@ use task::{TaskControlBlock, TaskStatus};
 use crate::config::MAX_APP_SIZE;
 use crate::loader::{get_num_app, init_app_cx};
 pub use context::TaskContext;
+pub use task::TaskInfo;
+pub use task::SyscallInfo;
 
 pub struct TaskManager {
     // 任务管理器管理的任务数目，TaskManager 初始化之后就不会在变化
@@ -220,4 +222,21 @@ pub fn user_time_start() {
 
 pub fn user_time_end() {
     TASK_MANAGER.user_time_end()
+}
+
+pub fn get_current_task_info() -> TaskControlBlock {
+    let inner = TASK_MANAGER.inner.exclusive_access();
+    let current = inner.current_task;
+    inner.tasks[current]
+}
+
+pub fn get_current_task_id() -> usize {
+    let inner = TASK_MANAGER.inner.exclusive_access();
+    inner.current_task
+}
+
+pub fn update_task_syscall_times(syscall_id: usize) {
+    let mut inner = TASK_MANAGER.inner.exclusive_access();
+    let current = inner.current_task;
+
 }
