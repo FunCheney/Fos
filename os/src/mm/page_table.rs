@@ -19,6 +19,9 @@ bitflags! {
     }
 }
 
+/// 让编译器自动上线 Copy/Clone Trait
+/// 让这个类型以值语义赋值/传参时不会发生所有权转转移，而是拷贝一份新的副本。
+/// PageTable 是 usize 的一层简单的封装
 #[derive(Copy, Clone)]
 #[repr(C)]
 /// page table entry structure
@@ -27,29 +30,39 @@ pub struct PageTableEntry {
 }
 
 impl PageTableEntry {
+    /// 通过一个物理页号 和 一个页表项标志位 PTEFlags 来生成一个页表项实例
     pub fn new(ppn: PhysPageNum, flags: PTEFlags) -> Self {
         PageTableEntry {
             bits: ppn.0 << 10 | flags.bits as usize,
         }
     }
+
     pub fn empty() -> Self {
         PageTableEntry { bits: 0 }
     }
+
+    /// 通过页表项取出 物理页号 PhysPageNum
     pub fn ppn(&self) -> PhysPageNum {
         (self.bits >> 10 & ((1usize << 44) - 1)).into()
     }
+
+    /// 通过页表项取出 页表项标志为 PTEFlags
     pub fn flags(&self) -> PTEFlags {
         PTEFlags::from_bits(self.bits as u8).unwrap()
     }
+
     pub fn is_valid(&self) -> bool {
         (self.flags() & PTEFlags::V) != PTEFlags::empty()
     }
+
     pub fn readable(&self) -> bool {
         (self.flags() & PTEFlags::R) != PTEFlags::empty()
     }
+
     pub fn writable(&self) -> bool {
         (self.flags() & PTEFlags::W) != PTEFlags::empty()
     }
+
     pub fn executable(&self) -> bool {
         (self.flags() & PTEFlags::X) != PTEFlags::empty()
     }

@@ -10,7 +10,7 @@ const VA_WIDTH_SV39: usize = 39;
 const PPN_WIDTH_SV39: usize = PA_WIDTH_SV39 - PAGE_SIZE_BITS;
 const VPN_WIDTH_SV39: usize = VA_WIDTH_SV39 - PAGE_SIZE_BITS;
 
-/// Definitions
+/// Definitions PhysAdd-1r
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct PhysAddr(pub usize);
 
@@ -52,12 +52,14 @@ impl Debug for PhysPageNum {
 /// T: {PhysAddr, VirtAddr, PhysPageNum, VirtPageNum}
 /// T -> usize: T.0
 /// usize -> T: usize.into()
-
+///  usize to PhysAddr
 impl From<usize> for PhysAddr {
     fn from(v: usize) -> Self {
         Self(v & ((1 << PA_WIDTH_SV39) - 1))
     }
 }
+
+/// usize to PhysPageNum
 impl From<usize> for PhysPageNum {
     fn from(v: usize) -> Self {
         Self(v & ((1 << PPN_WIDTH_SV39) - 1))
@@ -99,9 +101,12 @@ impl From<VirtPageNum> for usize {
 }
 
 impl VirtAddr {
+    // 下取整
     pub fn floor(&self) -> VirtPageNum {
         VirtPageNum(self.0 / PAGE_SIZE)
     }
+
+    // 上取整
     pub fn ceil(&self) -> VirtPageNum {
         if self.0 == 0 {
             VirtPageNum(0)
@@ -109,9 +114,11 @@ impl VirtAddr {
             VirtPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE)
         }
     }
+
     pub fn page_offset(&self) -> usize {
         self.0 & (PAGE_SIZE - 1)
     }
+
     pub fn aligned(&self) -> bool {
         self.page_offset() == 0
     }
@@ -152,7 +159,9 @@ impl From<PhysAddr> for PhysPageNum {
     }
 }
 impl From<PhysPageNum> for PhysAddr {
+    // 物理地址到物理页号的转换
     fn from(v: PhysPageNum) -> Self {
+        // 左移12 位
         Self(v.0 << PAGE_SIZE_BITS)
     }
 }
