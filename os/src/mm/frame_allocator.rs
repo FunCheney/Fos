@@ -36,16 +36,25 @@ impl Drop for FrameTracker {
     }
 }
 
+/// 来描述一个物理页帧管理器，需要提供那些功能
 trait FrameAllocator {
+    // 创建一个物理页帧
     fn new() -> Self;
+    // 以物理页号为单位进行物理页帧的分配
     fn alloc(&mut self) -> Option<PhysPageNum>;
+    // 以物理页号为单位进行物理页帧的回收
     fn dealloc(&mut self, ppn: PhysPageNum);
 }
 
 /// an implementation for frame allocator
+/// 栈式物理页帧管理策略
+/// 物理页号 [current, end) 此前均为被分出去过
 pub struct StackFrameAllocator {
+    // 空闲内存的起始物理页号
     current: usize,
+    // 空闲内存的结束物理页号
     end: usize,
+    // recycled 已后入先出的方式保存了被回收的物理页号
     recycled: Vec<usize>,
 }
 
@@ -56,20 +65,28 @@ impl StackFrameAllocator {
     }
 }
 impl FrameAllocator for StackFrameAllocator {
+    // 实现 new 方法，初始化时将区间两端设置为 0
     fn new() -> Self {
         Self {
             current: 0,
             end: 0,
+            // 创建一个新的向量
             recycled: Vec::new(),
         }
     }
     fn alloc(&mut self) -> Option<PhysPageNum> {
+        // 首先检查栈 recycled 内有没有之前回收的物理页号
+        // 如果有，直弹出并返回
         if let Some(ppn) = self.recycled.pop() {
             Some(ppn.into())
         } else if self.current == self.end {
+            // 如果 current 与 end 相等返回 None
             None
         } else {
+            // 从之前未分配的 [current, end) 上进行分配
+            // 分配左端点，并将 current + 1，代表 current 已经被分配
             self.current += 1;
+            // 使用 into  将 uszie 转换为物理页号 PhysPageNum
             Some((self.current - 1).into())
         }
     }
