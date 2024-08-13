@@ -93,7 +93,10 @@ impl FrameAllocator for StackFrameAllocator {
     fn dealloc(&mut self, ppn: PhysPageNum) {
         let ppn = ppn.0;
         // validity check
+        // 该页面之前一定分出去过，物理页号一定小于 current
+        // 该页面正在回收状态，物理也号不能在 recycled 中找到
         if ppn >= self.current || self.recycled.iter().any(|&v| v == ppn) {
+            // 如果找到了就会是一个 Option::Some, 说明内核的其他地方实现有误
             panic!("Frame ppn={:#x} has not been allocated!", ppn);
         }
         // recycle
@@ -105,6 +108,8 @@ type FrameAllocatorImpl = StackFrameAllocator;
 
 lazy_static! {
     /// frame allocator instance through lazy_static!
+    /// 用 UPSafeCell 来包裹栈式物理页帧分配器，每次对该分配器进行操作之前
+    /// 都需要通过 FRAME_ALLOCATOR.exclusive_access 拿到分配器的可变借用
     pub static ref FRAME_ALLOCATOR: UPSafeCell<FrameAllocatorImpl> =
         unsafe { UPSafeCell::new(FrameAllocatorImpl::new()) };
 }
