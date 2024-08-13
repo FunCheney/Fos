@@ -69,14 +69,22 @@ impl PageTableEntry {
 }
 
 /// page table structure
+/// 每个应用的地址空间都对应一个不同的多级页表，不同页表的起始地址不一样
 pub struct PageTable {
+    // 根节点的物理页号，做为页表唯一的区分标志
     root_ppn: PhysPageNum,
+    // 以向量 FrameTracker 的形式保存了页表所有节点的物理页帧
+    // 将这些 FrameTracker 的生命周期绑定到 PageTable 下面
+    // 当 PageTable 的生命周期结束，向量 frames 的生命周期结束
+    // 意味着存放多级页表节点的那些物理页帧也被回收
     frames: Vec<FrameTracker>,
 }
 
 /// Assume that it won't oom when creating/mapping.
 impl PageTable {
+    // 通过 new 方法创建 PageTable
     pub fn new() -> Self {
+        // 创建一个根节点
         let frame = frame_alloc().unwrap();
         PageTable {
             root_ppn: frame.ppn,
@@ -127,6 +135,7 @@ impl PageTable {
         result
     }
     #[allow(unused)]
+    /// 通过 map 方法在多级页表中插入一个键值对
     pub fn map(&mut self, vpn: VirtPageNum, ppn: PhysPageNum, flags: PTEFlags) {
         let pte = self.find_pte_create(vpn).unwrap();
         assert!(!pte.is_valid(), "vpn {:?} is mapped before mapping", vpn);

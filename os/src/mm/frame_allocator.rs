@@ -14,8 +14,11 @@ pub struct FrameTracker {
 }
 
 impl FrameTracker {
+    // 通过物理页帧的物理页号来创建 FrameTracker
     pub fn new(ppn: PhysPageNum) -> Self {
         // page cleaning
+        // 这个物理页帧可能之前被分配过，并用作其他用途
+        // 将物理页帧上的所有字节清零
         let bytes_array = ppn.get_bytes_array();
         for i in bytes_array {
             *i = 0;
@@ -30,6 +33,8 @@ impl Debug for FrameTracker {
     }
 }
 
+/// 实现 Drop Trait 当一个 FrameTracker 被回收时，
+/// drop 方法会自动被调用
 impl Drop for FrameTracker {
     fn drop(&mut self) {
         frame_dealloc(self.ppn);
@@ -120,12 +125,16 @@ pub fn init_frame_allocator() {
         fn ekernel();
     }
     FRAME_ALLOCATOR.exclusive_access().init(
+        // 上取整获取可用的物理页号
         PhysAddr::from(ekernel as usize).ceil(),
+        // 下取整获取可用的物理页号
         PhysAddr::from(MEMORY_END).floor(),
     );
 }
 
 /// allocate a frame
+/// 返回的值类型不是 FrameAllocator 要求的物理页号 PhysPageNum
+/// 而是将其进一步包装的 FrameTracker
 pub fn frame_alloc() -> Option<FrameTracker> {
     FRAME_ALLOCATOR
         .exclusive_access()

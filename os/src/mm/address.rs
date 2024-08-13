@@ -179,14 +179,25 @@ impl VirtPageNum {
 }
 
 impl PhysPageNum {
+    // 返回一个页表项定长数组的可变引用，代表多级页表项中的一个节点
+    // 返回值类型上附加了静态生命周期泛型 'static ，这是为了绕过 Rust 编译器的借用检查，
+    // 实质上可以将返回的类型也看成一个裸指针，因为它也只是标识数据存放的位置以及类型。
+    // 但与裸指针不同的是，无需通过 unsafe 的解引用访问它指向的数据，而是可以像一个正常的可变引用一样直接访问。
     pub fn get_pte_array(&self) -> &'static mut [PageTableEntry] {
+        // 页号转为物理地址
         let pa: PhysAddr = (*self).into();
+        // 然后再转成 usize 形式的物理地址。接着，我们直接将它转为裸指针用来访问物理地址指向的物理内存
         unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut PageTableEntry, 512) }
     }
+
+    // 返回的是一个字节数组的可变引用，可以以字节为粒度对物理页帧上的数据进行访问，
+    // 进行数据清零就用到了这个方法
     pub fn get_bytes_array(&self) -> &'static mut [u8] {
         let pa: PhysAddr = (*self).into();
         unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut u8, 4096) }
     }
+
+    // 以获取一个恰好放在一个物理页帧开头的类型为 T 的数据的可变引用
     pub fn get_mut<T>(&self) -> &'static mut T {
         let pa: PhysAddr = (*self).into();
         unsafe { (pa.0 as *mut T).as_mut().unwrap() }
