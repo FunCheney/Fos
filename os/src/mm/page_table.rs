@@ -98,25 +98,37 @@ impl PageTable {
             frames: Vec::new(),
         }
     }
+
+    //在多级页表中找到一个虚拟页号对应的页表项的可变引用
+    //如果在遍历的过程中发现有节点尚未创建，则会新建一个节点
     fn find_pte_create(&mut self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
         let idxs = vpn.indexes();
+        // 当前的物理页号
         let mut ppn = self.root_ppn;
+
         let mut result: Option<&mut PageTableEntry> = None;
         for (i, idx) in idxs.iter().enumerate() {
+            // 取出当前节点的页表项数组
             let pte = &mut ppn.get_pte_array()[*idx];
             if i == 2 {
+                // 如果是叶子节点，直接返回该页表项的可变引用
                 result = Some(pte);
                 break;
             }
             if !pte.is_valid() {
                 let frame = frame_alloc().unwrap();
+                // 新建一个节点，更新做为下级节点指针的页表项
                 *pte = PageTableEntry::new(frame.ppn, PTEFlags::V);
+                // 将新分配的页帧移动到 frames ，方便后续自动回收
                 self.frames.push(frame);
             }
             ppn = pte.ppn();
         }
         result
     }
+
+    // 在多级页表中找到一个虚拟页号对应的页表项的可变引用
+    // 如果遍历过程中找不到合法的叶子节点直接返回 None 不会创建新节点
     fn find_pte(&self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
         let idxs = vpn.indexes();
         let mut ppn = self.root_ppn;
