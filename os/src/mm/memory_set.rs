@@ -34,22 +34,34 @@ lazy_static! {
 }
 
 /// memory set structure, controls virtual-memory space
+/// 地址空间：一些列有关联的不一定连续的逻辑段
+/// 这种关联一般是指这些逻辑段组成的虚拟内存空间与一个运行的程序绑定
+/// 即这个运行的程序对代码和数据的直接访问范围限制在它关联的虚拟地址空间之内。
+/// 这样我们就有任务的地址空间，内核的地址空间等说法了。
 pub struct MemorySet {
+    // 多级页表 PageTable，下挂着所有多级页表的节点所在的物理页帧
     page_table: PageTable,
+    // 逻辑段向量，挂着对应逻辑段中的数据所在的物理页帧，
+    // 这两部分合在一起构成了一个地址空间所需的所有物理页帧
     areas: Vec<MapArea>,
 }
 
 impl MemorySet {
+    // 新建一个新的地址空间
     pub fn new_bare() -> Self {
         Self {
             page_table: PageTable::new(),
             areas: Vec::new(),
         }
     }
+
     pub fn token(&self) -> usize {
         self.page_table.token()
     }
+
     /// Assume that no conflicts.
+    /// 调用 push ，可以在当前地址空间插入一个 Framed 方式映射到物理内存的逻辑段
+    /// 该方法的调用者要保证同一地址空间内的任意两个逻辑段不能存在交集
     pub fn insert_framed_area(
         &mut self,
         start_va: VirtAddr,
@@ -61,6 +73,9 @@ impl MemorySet {
             None,
         );
     }
+
+    // 在当前地址空间插入一个新的逻辑段 map_area ，如果它是以 Framed 方式映射到物理内存，
+    // 还可以可选地在那些被映射到的物理页帧上写入一些初始化数据 data
     fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) {
         map_area.map(&mut self.page_table);
         if let Some(data) = data {
@@ -76,7 +91,9 @@ impl MemorySet {
             PTEFlags::R | PTEFlags::X,
         );
     }
+
     /// Without kernel stacks.
+    /// 生成内核的地址空间
     pub fn new_kernel() -> Self {
         let mut memory_set = Self::new_bare();
         // map trampoline
@@ -153,8 +170,10 @@ impl MemorySet {
         }
         memory_set
     }
+
     /// Include sections in elf and trampoline and TrapContext and user stack,
     /// also returns user_sp and entry point.
+    /// 分析应用的 ELF 文件格式的内容，解析出各数据段并生成对应的地址空间
     pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize) {
         let mut memory_set = Self::new_bare();
         // map trampoline
@@ -270,14 +289,21 @@ impl MemorySet {
 }
 
 /// map area structure, controls a contiguous piece of virtual memory
+/// 以逻辑段为单位描述一段连续的虚拟内存
+/// 逻辑段就是指地址区间中一段实际可用的地址连续的虚拟地址区间，该区间内
+/// 包含的所有虚拟页都以一种相同的方式映射到物理页帧，具有可读、可写、可执行等属性。
 pub struct MapArea {
+    // 描述一段虚拟页号的连续空间，表示该逻辑段在地址区间中的长度和位置
     vpn_range: VPNRange,
     data_frames: BTreeMap<VirtPageNum, FrameTracker>,
+    // 描述该逻辑段内的所有虚拟页面映射到物理页帧的同一种方式
     map_type: MapType,
     map_perm: MapPermission,
 }
 
 impl MapArea {
+    // 新建一个逻辑段结构体，注意传入的起始/终止虚拟地址会分别被下取整/上取整为虚拟页号
+    // 并传入迭代器 vpn_range 中
     pub fn new(
         start_va: VirtAddr,
         end_va: VirtAddr,
@@ -315,14 +341,21 @@ impl MapArea {
         }
         page_table.unmap(vpn);
     }
+    // 将当前逻辑段到物理内存的映射从传入的该逻辑段所属的地址空间的多级页表中加入
     pub fn map(&mut self, page_table: &mut PageTable) {
+        // 遍历逻辑段中的所有虚拟页面
         for vpn in self.vpn_range {
+            // 以每个虚拟页面为单位依次在多级页表中进行键值对的插入
             self.map_one(page_table, vpn);
         }
     }
+
+    // 将当前逻辑段到物理内存的映射从传入的该逻辑段所属的地址空间的多级页表中删除
     #[allow(unused)]
     pub fn unmap(&mut self, page_table: &mut PageTable) {
+        // 遍历逻辑段中的所有虚拟页面
         for vpn in self.vpn_range {
+            // 以每个虚拟页面为单位依次在多级页表中进行键值对的删除
             self.unmap_one(page_table, vpn);
         }
     }
@@ -367,7 +400,12 @@ impl MapArea {
 #[derive(Copy, Clone, PartialEq, Debug)]
 /// map type for memory set: identical or framed
 pub enum MapType {
+    // 表示恒等映射
+    // 主要是用在启用多级页表之后，内核仍能够在虚存地址空间中访问
+    // 一个特定的物理地址指向的物理内存。
     Identical,
+    // 表示对于每个虚拟页面都有一个新分配的物理页帧与之对应，
+    // 虚地址与物理地址的映射关系是相对随机的
     Framed,
 }
 
