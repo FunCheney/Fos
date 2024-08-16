@@ -319,6 +319,13 @@ impl MapArea {
             map_perm,
         }
     }
+    /// 在虚拟页号 vpn 确定的情况下，需要知道将一个怎样的页表项插入多级页表
+    /// 页表项的标志位来源于当前逻辑段的类型为 MapPermission 的统一配置，只需将其转换为 PTEFlags ；
+    /// 而页表项的物理页号则取决于当前逻辑段映射到物理内存的方式：
+    ///     当以恒等映射 Identical 方式映射的时候，物理页号就等于虚拟页号；
+    ///     当以 Framed 方式映射时，需要分配一个物理页帧让当前的虚拟页面可以映射过去，
+    ///     此时页表项中的物理页号自然就是 这个被分配的物理页帧的物理页号。
+    ///     此时还需要将这个物理页帧挂在逻辑段的 data_frames 字段下。
     pub fn map_one(&mut self, page_table: &mut PageTable, vpn: VirtPageNum) {
         let ppn: PhysPageNum;
         match self.map_type {
@@ -332,6 +339,7 @@ impl MapArea {
             }
         }
         let pte_flags = PTEFlags::from_bits(self.map_perm.bits).unwrap();
+        // 确定了页表项的标志位和物理页号之后，调用 多级页表 page_table 的 map 接口来插入键值对
         page_table.map(vpn, ppn, pte_flags);
     }
     #[allow(unused)]
@@ -339,6 +347,9 @@ impl MapArea {
         if self.map_type == MapType::Framed {
             self.data_frames.remove(&vpn);
         }
+        // 调应 page_table 的 unmap 接口删除以传入的虚拟页号为键的键值对即可。
+        // 然而，当以 Framed 映射的时候，不要忘记同时将虚拟页面被映射到的物理页帧 FrameTracker 从 data_frames 中移除，
+        // 这样这个物理页帧才能立即被回收以备后续分配。
         page_table.unmap(vpn);
     }
     // 将当前逻辑段到物理内存的映射从传入的该逻辑段所属的地址空间的多级页表中加入
@@ -375,23 +386,32 @@ impl MapArea {
     }
     /// data: start-aligned but maybe with shorter length
     /// assume that all frames were cleared before
+    /// 将切片 data 中的数据拷贝到当前逻辑段实际被内核放置在各个物理页帧上
+    /// 从而在第中空间中通过逻辑段就能访问这些数据
+    /// 切片 data 中的数据大小不超过当前逻辑段的总大小，且切片中的数据会被对齐到
+    /// 逻辑段的开头，然后逐页拷贝到实际的物理页帧
     pub fn copy_data(&mut self, page_table: &PageTable, data: &[u8]) {
         assert_eq!(self.map_type, MapType::Framed);
         let mut start: usize = 0;
         let mut current_vpn = self.vpn_range.get_start();
         let len = data.len();
+        // 遍历每一个需要拷贝数据的虚拟页面
         loop {
+            // 页面拷贝的数据源 切片
             let src = &data[start..len.min(start + PAGE_SIZE)];
+            // 页面拷贝的目标 切片
             let dst = &mut page_table
                 .translate(current_vpn)
                 .unwrap()
                 .ppn()
                 .get_bytes_array()[..src.len()];
+            // 通过 copy_from_slice() 方法完成复制
             dst.copy_from_slice(src);
             start += PAGE_SIZE;
             if start >= len {
                 break;
             }
+            // 数据拷贝完之后调用该方法
             current_vpn.step();
         }
     }
