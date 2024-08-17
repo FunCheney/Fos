@@ -14,6 +14,7 @@ use core::arch::asm;
 use lazy_static::*;
 use riscv::register::satp;
 
+/// 从 os/src/linker.ld 中应用了很多表示各段位置的符号
 extern "C" {
     fn stext();
     fn etext();
@@ -27,6 +28,7 @@ extern "C" {
     fn strampoline();
 }
 
+/// 在 KERNEL_SPACE 第一次被用时进行初始化
 lazy_static! {
     /// a memory set instance through lazy_static! managing kernel space
     pub static ref KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> =
@@ -187,10 +189,14 @@ impl MemorySet {
         let mut max_end_vpn = VirtPageNum(0);
         for i in 0..ph_count {
             let ph = elf.program_header(i).unwrap();
+            // 确认 program_header 的类型是 Load，表明有被内核加载的需要
             if ph.get_type().unwrap() == xmas_elf::program::Type::Load {
+                // 计算应用在地址空间中的开始位置
                 let start_va: VirtAddr = (ph.virtual_addr() as usize).into();
+                // 计算应用在地址空间中的结束位置
                 let end_va: VirtAddr = ((ph.virtual_addr() + ph.mem_size()) as usize).into();
                 let mut map_perm = MapPermission::U;
+                // 确认这异区域的访问限制，并将其转化为 MapPermission 类型
                 let ph_flags = ph.flags();
                 if ph_flags.is_read() {
                     map_perm |= MapPermission::R;
@@ -201,8 +207,10 @@ impl MemorySet {
                 if ph_flags.is_execute() {
                     map_perm |= MapPermission::X;
                 }
+                // 创建 map_area
                 let map_area = MapArea::new(start_va, end_va, MapType::Framed, map_perm);
                 max_end_vpn = map_area.vpn_range.get_end();
+                // push 到应用的地址空间
                 memory_set.push(
                     map_area,
                     Some(&elf.input[ph.offset() as usize..(ph.offset() + ph.file_size()) as usize]),
@@ -211,6 +219,7 @@ impl MemorySet {
         }
         // map user stack with U flags
         let max_end_va: VirtAddr = max_end_vpn.into();
+        // 放置一个保护页面的用户栈
         let mut user_stack_bottom: usize = max_end_va.into();
         // guard page
         user_stack_bottom += PAGE_SIZE;
@@ -244,16 +253,21 @@ impl MemorySet {
             ),
             None,
         );
+
+        // 返回数据
         (
-            memory_set,
-            user_stack_top,
-            elf.header.pt2.entry_point() as usize,
+            memory_set,                            // 应用地址空间
+            user_stack_top,                        // 用户栈虚拟地址
+            elf.header.pt2.entry_point() as usize, // 解析 ELF 得到的应用入口点点地址
         )
     }
     pub fn activate(&self) {
+        // 调用 token 方法
         let satp = self.page_table.token();
         unsafe {
             satp::write(satp);
+            // 为了确保 MMU 的地址转换能够及时与 satp 的修改同步，我们需要立即使用 sfence.vma 指令将快表清空，
+            // 这样 MMU 就不会看到快表中已经过期的键值对了。
             asm!("sfence.vma");
         }
     }

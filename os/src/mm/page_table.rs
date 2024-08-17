@@ -162,6 +162,10 @@ impl PageTable {
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.find_pte(vpn).map(|pte| *pte)
     }
+
+    /// PageTable::token 会按照 satp CSR 格式要求 构造一个无符号 64 位无符号整数，使得其分页模式为 SV39 ，
+    /// 且将当前多级页表的根节点所在的物理页号填充进去。在 MemorySet 的 activate 中，我们将这个值写入当前 CPU 的 satp CSR ，
+    /// 从这一刻开始 SV39 分页模式就被启用了，而且 MMU 会使用内核地址空间的多级页表进行地址转换。
     pub fn token(&self) -> usize {
         8usize << 60 | self.root_ppn.0
     }
