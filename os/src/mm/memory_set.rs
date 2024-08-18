@@ -14,7 +14,7 @@ use core::arch::asm;
 use lazy_static::*;
 use riscv::register::satp;
 
-/// 从 os/src/linker.ld 中应用了很多表示各段位置的符号
+// 从 os/src/linker.ld 中应用了很多表示各段位置的符号
 extern "C" {
     fn stext();
     fn etext();
@@ -28,9 +28,9 @@ extern "C" {
     fn strampoline();
 }
 
-/// 在 KERNEL_SPACE 第一次被用时进行初始化
 lazy_static! {
     /// a memory set instance through lazy_static! managing kernel space
+    /// 在 KERNEL_SPACE 第一次被用时进行初始化
     pub static ref KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> =
         Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
 }
