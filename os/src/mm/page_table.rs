@@ -172,6 +172,10 @@ impl PageTable {
 }
 
 /// translate a pointer to a mutable u8 Vec through page table
+/// 提供了将应用地址空间中一个缓冲区转化为在内核空间中能够直接访问的形式
+/// token: 某个应用地址空间的 token
+/// ptr 和 len 则分别表示该地址空间中的一段缓冲区的起始地址和长度
+/// 以向量的形式返回一组可以在内核空间中直接访问的字节数组切片
 pub fn translated_byte_buffer(token: usize, ptr: *const u8, len: usize) -> Vec<&'static mut [u8]> {
     let page_table = PageTable::from_token(token);
     let mut start = ptr as usize;

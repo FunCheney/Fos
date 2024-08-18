@@ -6,8 +6,8 @@ mod context;
 
 use crate::config::{TRAMPOLINE, TRAP_CONTEXT};
 use crate::task::{current_trap_cx, current_uset_token, exit_current_run_next};
-use crate::{syscall::syscall, task::suspend_current_and_run_next};
 use crate::timer::set_next_trigger;
+use crate::{syscall::syscall, task::suspend_current_and_run_next};
 use core::arch::{asm, global_asm};
 use log::{debug, error, info};
 use riscv::register::sie;
@@ -29,26 +29,32 @@ pub fn init() {
 }
 
 fn set_kernel_trap_entry() {
+    // 一旦进入内核后再次触发到 S态 Trap，则硬件在设置一些 CSR 寄存器之后，会跳过对通用寄存器的保存
+    // 过程，直接跳转到 trap_from_kernel 函数，在这里直接 panic 退出。这是因为内核和应用的地址空间
+    // 分离之后，U态 –> S态 与 S态 –> S态 的 Trap 上下文保存与恢复实现方式/Trap 处理逻辑有很大差别。
     unsafe {
         stvec::write(trap_from_kernel as usize, TrapMode::Direct);
     }
 }
 
 fn set_user_trap_entry() {
+    // 把 stvec 设置为内核和应用地址空间共享的跳板页面的起始地址 TRAMPOLINE 而不是编译器在链接时看
+    // 到的 __alltraps 的地址。这是因为启用分页模式之后，内核只能通过跳板页面上的虚拟地址来实际取得
+    // __alltraps 和 __restore 的汇编代码。
     unsafe {
         stvec::write(TRAMPOLINE as usize, TrapMode::Direct);
     }
 }
-
 
 pub fn enable_timer_interrupt() {
     unsafe {
         sie::set_stimer();
     }
 }
-    
+
 #[no_mangle]
 pub fn trap_handler() -> ! {
+    // set_kernel_trap_entry 将 stvec 修改为同模块下另一个函数 trap_from_kernel 的地址
     set_kernel_trap_entry();
     let cx = current_trap_cx();
     // 进入用户态的时候，可以统计用户态的运行时间
@@ -72,10 +78,9 @@ pub fn trap_handler() -> ! {
         }
 
         Trap::Exception(Exception::StoreFault)
-         | Trap::Exception(Exception::StorePageFault)
-         | Trap::Exception(Exception::LoadFault)
-         | Trap::Exception(Exception::LoadPageFault)=> {
-
+        | Trap::Exception(Exception::StorePageFault)
+        | Trap::Exception(Exception::LoadFault)
+        | Trap::Exception(Exception::LoadPageFault) => {
             info!("[Kernel] PageFault in app, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.", stval, cx.sepc);
             exit_current_run_next();
             //run_next_app();
@@ -111,17 +116,28 @@ pub fn trap_handler() -> ! {
 
 #[no_mangle]
 pub fn trap_return() -> ! {
+    // set_user_trap_entry ，来让应用 Trap 到 S 的时候可以跳转到 __alltraps 。
+    // 注：我们把 stvec 设置为内核和应用地址空间共享的跳板页面的起始地址
     set_user_trap_entry();
+    // 准备好 __restore 需要两个参数：分别是 Trap 上下文在应用地址空间中的虚拟地址和要继续执行的应用地址空间的 token
+    // 最后我们需要跳转到 __restore ，以执行：切换到应用地址空间、从 Trap 上下文中恢复通用寄存器、 sret 继续执行应用。
+    // 它的关键在于如何找到 __restore 在内核/应用地址空间中共同的虚拟地址。
     let trap_cx_ptr = TRAP_CONTEXT;
     let user_trap = current_uset_token();
     extern "C" {
         fn __alltraps();
         fn __restore();
     }
-
+    // 计算 __restore 虚地址的过程：由于 __alltraps 是对齐到地址空间跳板页面的起始地址 TRAMPOLINE 上
+    // 的， 则 __restore 的虚拟地址只需在 TRAMPOLINE 基础上加上 __restore 相对于 __alltraps 的偏移
+    // 量即可。这里 __alltraps 和 __restore 都是指编译器在链接时看到的内核内存布局中的地址。
     let restore_va = __restore as usize - __alltraps as usize + TRAMPOLINE;
     unsafe {
         asm!(
+            // 首先需要使用 fence.i 指令清空指令缓存 i-cache 。这是因为，在内核中进行的一些操作可能
+            // 导致一些原先存放某个应用代码的物理页帧如今用来存放数据或者是其他应用的代码，i-cache
+            // 中可能还保存着该物理页帧的错误快照。因此我们直接将整个 i-cache 清空避免错误。接着使
+            // 用 jr 指令完成了跳转到 __restore 的任务
             "fence.i",
             "jr {restore_va}",     // jump to new addr of _restore asm function
             restore_va = in(reg) restore_va,
@@ -136,6 +152,5 @@ pub fn trap_return() -> ! {
 pub fn trap_from_kernel() -> ! {
     panic!("a trap from kernel");
 }
-
 
 pub use context::TrapContext;
