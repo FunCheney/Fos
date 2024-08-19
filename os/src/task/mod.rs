@@ -13,11 +13,10 @@ use lazy_static::*;
 use log::{debug, info};
 use task::{TaskControlBlock, TaskStatus};
 
-use crate::config::MAX_APP_SIZE;
+use crate::config::{MAX_APP_SIZE, MAX_SYS_CALL_NUM};
 use crate::loader::{get_num_app, init_app_cx};
 pub use context::TaskContext;
 pub use task::TaskInfo;
-pub use task::SyscallInfo;
 
 pub struct TaskManager {
     // 任务管理器管理的任务数目，TaskManager 初始化之后就不会在变化
@@ -57,6 +56,7 @@ lazy_static! {
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
+            syscall_times: [0; MAX_SYS_CALL_NUM],
             user_time: 0,
             kernel_time: 0,
         }; MAX_APP_SIZE];
@@ -230,6 +230,7 @@ pub fn get_current_task_info() -> TaskControlBlock {
     inner.tasks[current]
 }
 
+#[allow(unused)]
 pub fn get_current_task_id() -> usize {
     let inner = TASK_MANAGER.inner.exclusive_access();
     inner.current_task
@@ -238,5 +239,6 @@ pub fn get_current_task_id() -> usize {
 pub fn update_task_syscall_times(syscall_id: usize) {
     let mut inner = TASK_MANAGER.inner.exclusive_access();
     let current = inner.current_task;
+    inner.tasks[current].syscall_times[syscall_id] += 1;
 
 }

@@ -1,6 +1,5 @@
 //! Types related to task manager
 
-use core::clone;
 
 use crate::config::MAX_SYS_CALL_NUM;
 
@@ -13,6 +12,8 @@ pub struct TaskControlBlock {
     pub task_status: TaskStatus,
     // 任务上下文
     pub task_cx: TaskContext,
+    
+    pub syscall_times:[u32; MAX_SYS_CALL_NUM],
     // 用户态时间
     pub user_time: usize,
     //  内核态时间
@@ -29,29 +30,8 @@ pub enum TaskStatus {
 
 #[derive(Copy, Clone)]
 pub struct TaskInfo {
-    pub id: usize,
     pub status: TaskStatus,
-    pub call: [SyscallInfo; MAX_SYS_CALL_NUM],
+    pub call: [u32; MAX_SYS_CALL_NUM],
     pub time: usize,
 }
 
-#[derive(Copy, Clone)]
-pub struct SyscallInfo {
-    pub id: usize,
-    pub times: usize,
-
-}
-
-impl TaskInfo {
-    pub fn new() -> Self {
-        TaskInfo {
-            id: 0,
-            status: TaskStatus::UnInit,
-            call:[SyscallInfo {
-                id: 0,
-                times: 0,
-            }; MAX_SYS_CALL_NUM],
-            time: 0,
-        }
-    }
-}
