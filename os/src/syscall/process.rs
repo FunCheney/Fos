@@ -2,6 +2,8 @@
 use log::debug;
 use log::info;
 
+use crate::task::get_current_status;
+use crate::task::get_syscall_time;
 // use crate::batch::run_next_app;
 use crate::task::{exit_current_run_next};
 use crate::task::get_current_task_info;
@@ -32,8 +34,8 @@ pub fn sys_task_info(ts: *mut TaskInfo) -> isize {
     let task_block = get_current_task_info();
     unsafe {
         *ts = TaskInfo {
-            status: task_block.task_status,
-            call: task_block.syscall_times,
+            status: get_current_status(),
+            call: get_syscall_time(),
             time: task_block.kernel_time + task_block.user_time, 
         }
     };
