@@ -31,6 +31,7 @@ extern "C" {
 lazy_static! {
     /// a memory set instance through lazy_static! managing kernel space
     /// 在 KERNEL_SPACE 第一次被用时进行初始化
+    /// 创建内核地址空间
     pub static ref KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> =
         Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
 }

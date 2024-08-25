@@ -21,6 +21,7 @@ pub use page_table::{translated_byte_buffer, PageTableEntry};
 use page_table::{PTEFlags, PageTable};
 
 /// initiate heap allocator, frame allocator and kernel space
+/// 内存管理子系统的初始化
 pub fn init() {
     // 初始化全局动态内存分配器
     heap_allocator::init_heap();
