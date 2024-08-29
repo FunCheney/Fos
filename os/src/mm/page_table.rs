@@ -70,6 +70,9 @@ impl PageTableEntry {
 
 /// page table structure
 /// 每个应用的地址空间都对应一个不同的多级页表，不同页表的起始地址不一样
+/// 负责建立好虚拟页号和物理页号的对应关系
+/// 以页为单位维护
+/// 对计算机系统的整个虚拟/物理 内存空间并没有一个全局的映射和掌控
 pub struct PageTable {
     // 根节点的物理页号，做为页表唯一的区分标志
     root_ppn: PhysPageNum,

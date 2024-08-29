@@ -312,7 +312,10 @@ pub struct MapArea {
     vpn_range: VPNRange,
     data_frames: BTreeMap<VirtPageNum, FrameTracker>,
     // 描述该逻辑段内的所有虚拟页面映射到物理页帧的同一种方式
+    // 恒等映射: 主要为内核地址空间服务
+    // 非恒等映射: 主要为用户程序服务
     map_type: MapType,
+    // 页表项标志位的子集
     map_perm: MapPermission,
 }
 
