@@ -87,9 +87,12 @@ impl MemorySet {
         self.areas.push(map_area);
     }
     /// Mention that trampoline is not collected by areas.
+    /// 在内置页表中将虚拟地址 trampoline 所对应的虚拟页映射到 __alltraps 对应的页
     fn map_trampoline(&mut self) {
         self.page_table.map(
+            // 虚拟页是: TRAMPOLINE 虚拟页里面中的次高页的位置
             VirtAddr::from(TRAMPOLINE).into(),
+            // 物理页是 strampoline 之间的映射，对应 __alltraps 所对应的物理页起始地址
             PhysAddr::from(strampoline as usize).into(),
             PTEFlags::R | PTEFlags::X,
         );
@@ -97,9 +100,12 @@ impl MemorySet {
 
     /// Without kernel stacks.
     /// 生成内核的地址空间
+    /// 通过该方后，整个内核的地址空间都是对等映射，说明虚拟页就是物理页，
+    /// 想访问那个地址，直接访问就行
     pub fn new_kernel() -> Self {
         let mut memory_set = Self::new_bare();
         // map trampoline
+        // 映射内核中的 TRAMPOLINE 和 __alltraps 中断的位置
         memory_set.map_trampoline();
         // map kernel sections
         println!(".text [{:#x}, {:#x})", stext as usize, etext as usize);
@@ -110,6 +116,7 @@ impl MemorySet {
             sbss_with_stack as usize, ebss as usize
         );
         println!("mapping .text section");
+        // 内核代码段作对等映射
         memory_set.push(
             MapArea::new(
                 (stext as usize).into(),
@@ -120,6 +127,7 @@ impl MemorySet {
             None,
         );
         println!("mapping .rodata section");
+        // rodata 段作对等映射
         memory_set.push(
             MapArea::new(
                 (srodata as usize).into(),
@@ -130,6 +138,7 @@ impl MemorySet {
             None,
         );
         println!("mapping .data section");
+        // data 段作对等映射
         memory_set.push(
             MapArea::new(
                 (sdata as usize).into(),
@@ -140,6 +149,7 @@ impl MemorySet {
             None,
         );
         println!("mapping .bss section");
+        // bss 段作对等映射
         memory_set.push(
             MapArea::new(
                 (sbss_with_stack as usize).into(),
@@ -150,6 +160,7 @@ impl MemorySet {
             None,
         );
         println!("mapping physical memory");
+        // 内核到内存的尽头作对等映射
         memory_set.push(
             MapArea::new(
                 (ekernel as usize).into(),
@@ -177,6 +188,7 @@ impl MemorySet {
     /// Include sections in elf and trampoline and TrapContext and user stack,
     /// also returns user_sp and entry point.
     /// 分析应用的 ELF 文件格式的内容，解析出各数据段并生成对应的地址空间
+    /// 返回三元组: 进程的 MemorySet，用户栈地址，入口地址
     pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize) {
         let mut memory_set = Self::new_bare();
         // map trampoline
@@ -186,6 +198,9 @@ impl MemorySet {
         let elf_header = elf.header;
         let magic = elf_header.pt1.magic;
         assert_eq!(magic, [0x7f, 0x45, 0x4c, 0x46], "invalid elf!");
+        // 应用程序在链接的时候就已经确定了每个应用的虚拟地址（逻辑地址）
+        // 在载入系统的时候，数据在程序中的虚拟地址和在内存中的虚拟地址是一致的
+        // 这样才能保证，程序在进入虚拟内存后才能正常运行
         let ph_count = elf_header.pt2.ph_count();
         let mut max_end_vpn = VirtPageNum(0);
         for i in 0..ph_count {
@@ -196,6 +211,7 @@ impl MemorySet {
                 let start_va: VirtAddr = (ph.virtual_addr() as usize).into();
                 // 计算应用在地址空间中的结束位置
                 let end_va: VirtAddr = ((ph.virtual_addr() + ph.mem_size()) as usize).into();
+                // 表示程序在用户态下运行
                 let mut map_perm = MapPermission::U;
                 // 确认这异区域的访问限制，并将其转化为 MapPermission 类型
                 let ph_flags = ph.flags();
@@ -224,12 +240,14 @@ impl MemorySet {
         let mut user_stack_bottom: usize = max_end_va.into();
         // guard page
         user_stack_bottom += PAGE_SIZE;
+        // 分配用户栈，在用户程序的最后 方了一个页作保护，然后开始分配用户栈
         let user_stack_top = user_stack_bottom + USER_STACK_SIZE;
         memory_set.push(
             MapArea::new(
                 user_stack_bottom.into(),
                 user_stack_top.into(),
                 MapType::Framed,
+                // 设置用户栈 可读/可写/用户态下可用
                 MapPermission::R | MapPermission::W | MapPermission::U,
             ),
             None,
@@ -245,6 +263,7 @@ impl MemorySet {
             None,
         );
         // map TrapContext
+        // 预留了 TRAMPOLINE 前面的一个虚拟页用来放 TrapContext
         memory_set.push(
             MapArea::new(
                 TRAP_CONTEXT.into(),
@@ -262,6 +281,8 @@ impl MemorySet {
             elf.header.pt2.entry_point() as usize, // 解析 ELF 得到的应用入口点点地址
         )
     }
+
+    /// 使用 activate 方法使其生效
     pub fn activate(&self) {
         // 调用 token 方法
         let satp = self.page_table.token();

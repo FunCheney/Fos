@@ -169,8 +169,8 @@ impl From<PhysPageNum> for PhysAddr {
 impl VirtPageNum {
     // 取出虚拟页号的三级页索引，并按照从高到底的顺序返回
     // 39 - 30 为 一级 索引页
-    // 30 - 21 为 
-    // 21 - 12 
+    // 30 - 21 为 二级 索引页
+    // 21 - 12 为 三级 索引页 
     pub fn indexes(&self) -> [usize; 3] {
         let mut vpn = self.0;
         let mut idx = [0usize; 3];
@@ -241,6 +241,8 @@ where
         self.r
     }
 }
+
+// 常见 SimpleRange 迭代器
 impl<T> IntoIterator for SimpleRange<T>
 where
     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
