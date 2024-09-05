@@ -52,11 +52,14 @@ impl TaskManagerInner {
 lazy_static! {
     pub static ref TASK_MANAGER: TaskManager = {
         info!("init TASK_MANAGER");
+        // 获取任务数量
         let num_app = get_num_app();
         let mut tasks: Vec<TaskControlBlock> = Vec::new();
 
         for i in 0..num_app {
+            // 为每个应用创建 TCB 
             tasks.push(TaskControlBlock::new(
+                   // 获取对应程序的 elf 文件
                     get_app_data(i),
                     i
             ));
@@ -208,6 +211,7 @@ pub fn suspend_current_and_run_next() {
     run_next_task();
 }
 pub fn run_first_task() {
+    // 第一次 调用 该方法是，触发 TaskManager 初始化
     TASK_MANAGER.run_first_task();
 }
 pub fn run_next_task() {
