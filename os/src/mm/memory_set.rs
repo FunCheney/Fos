@@ -224,7 +224,7 @@ impl MemorySet {
                 if ph_flags.is_execute() {
                     map_perm |= MapPermission::X;
                 }
-                // 创建 map_area
+                // 创建 map_area 逻辑地址空间（虚拟地址）
                 let map_area = MapArea::new(start_va, end_va, MapType::Framed, map_perm);
                 max_end_vpn = map_area.vpn_range.get_end();
                 // push 到应用的地址空间
@@ -238,14 +238,16 @@ impl MemorySet {
         let max_end_va: VirtAddr = max_end_vpn.into();
         // 放置一个保护页面的用户栈
         let mut user_stack_bottom: usize = max_end_va.into();
-        // guard page
+        // guard page 多加一页作为保护，计算出用户栈栈底的位置
         user_stack_bottom += PAGE_SIZE;
         // 分配用户栈，在用户程序的最后 方了一个页作保护，然后开始分配用户栈
+        // 加上 用户栈的大小，确定用户栈栈顶的位置
         let user_stack_top = user_stack_bottom + USER_STACK_SIZE;
         memory_set.push(
             MapArea::new(
                 user_stack_bottom.into(),
                 user_stack_top.into(),
+                // 设置为 Framed 映射方式 （随机映射）
                 MapType::Framed,
                 // 设置用户栈 可读/可写/用户态下可用
                 MapPermission::R | MapPermission::W | MapPermission::U,
@@ -266,9 +268,13 @@ impl MemorySet {
         // 预留了 TRAMPOLINE 前面的一个虚拟页用来放 TrapContext
         memory_set.push(
             MapArea::new(
+                // 开始位置
                 TRAP_CONTEXT.into(),
+                // TRAP_CONTEXT 结束的位置为 TRAMPOLINE 开始的位置
                 TRAMPOLINE.into(),
+                // 随机映射
                 MapType::Framed,
+                // 设置
                 MapPermission::R | MapPermission::W,
             ),
             None,
