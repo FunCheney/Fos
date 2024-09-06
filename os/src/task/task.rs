@@ -47,6 +47,7 @@ impl TaskControlBlock {
             .unwrap()
             .ppn();
 
+        // 设置任务的状态为 Ready
         let task_status = TaskStatus::Ready;
         // 根据传入的应用 ID app_id 调用在 config 子模块中定义的 kernel_stack_position
         // 找到应用的内核栈预计放在内核地址空间 KERNEL_SPACE 中的哪个位置，

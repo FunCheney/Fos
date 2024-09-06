@@ -358,7 +358,9 @@ impl MapArea {
         let start_vpn: VirtPageNum = start_va.floor();
         let end_vpn: VirtPageNum = end_va.ceil();
         Self {
+            // 虚拟页号的空间
             vpn_range: VPNRange::new(start_vpn, end_vpn),
+            // vpn --> ppn 的映射
             data_frames: BTreeMap::new(),
             map_type,
             map_perm,
