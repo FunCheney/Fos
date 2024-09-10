@@ -121,6 +121,7 @@ impl MemorySet {
             MapArea::new(
                 (stext as usize).into(),
                 (etext as usize).into(),
+                // 映射方式为恒等映射
                 MapType::Identical,
                 MapPermission::R | MapPermission::X,
             ),
@@ -132,6 +133,7 @@ impl MemorySet {
             MapArea::new(
                 (srodata as usize).into(),
                 (erodata as usize).into(),
+                // 映射方式为恒等映射
                 MapType::Identical,
                 MapPermission::R,
             ),
@@ -143,6 +145,7 @@ impl MemorySet {
             MapArea::new(
                 (sdata as usize).into(),
                 (edata as usize).into(),
+                // 恒等映射
                 MapType::Identical,
                 MapPermission::R | MapPermission::W,
             ),
@@ -154,6 +157,7 @@ impl MemorySet {
             MapArea::new(
                 (sbss_with_stack as usize).into(),
                 (ebss as usize).into(),
+                // 恒等映射
                 MapType::Identical,
                 MapPermission::R | MapPermission::W,
             ),
@@ -165,6 +169,7 @@ impl MemorySet {
             MapArea::new(
                 (ekernel as usize).into(),
                 MEMORY_END.into(),
+                // 恒等映射
                 MapType::Identical,
                 MapPermission::R | MapPermission::W,
             ),
@@ -176,6 +181,7 @@ impl MemorySet {
                 MapArea::new(
                     (*pair).0.into(),
                     ((*pair).0 + (*pair).1).into(),
+                    // 恒等映射
                     MapType::Identical,
                     MapPermission::R | MapPermission::W,
                 ),
@@ -293,6 +299,7 @@ impl MemorySet {
         // 调用 token 方法
         let satp = self.page_table.token();
         unsafe {
+            // 让 CPU 开启分页模式
             satp::write(satp);
             // 为了确保 MMU 的地址转换能够及时与 satp 的修改同步，我们需要立即使用 sfence.vma 指令将快表清空，
             // 这样 MMU 就不会看到快表中已经过期的键值对了。
@@ -367,7 +374,7 @@ impl MapArea {
         }
     }
     /// 在虚拟页号 vpn 确定的情况下，需要知道将一个怎样的页表项插入多级页表
-    /// 页表项的标志位来源于当前逻辑段的类型为 MapPermission 的统一配置，只需将其转换为 PTEFlags ；
+    /// 页表项的标志位来源于当前逻辑段的类型为 MapPermission 的统一配置，只需将其转换为 PTEFlags；
     /// 而页表项的物理页号则取决于当前逻辑段映射到物理内存的方式：
     ///     当以恒等映射 Identical 方式映射的时候，物理页号就等于虚拟页号；
     ///     当以 Framed 方式映射时，需要分配一个物理页帧让当前的虚拟页面可以映射过去，
