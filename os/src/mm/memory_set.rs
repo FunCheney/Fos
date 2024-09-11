@@ -196,8 +196,10 @@ impl MemorySet {
     /// 分析应用的 ELF 文件格式的内容，解析出各数据段并生成对应的地址空间
     /// 返回三元组: 进程的 MemorySet，用户栈地址，入口地址
     pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize) {
+        // 创建一个新的空间
         let mut memory_set = Self::new_bare();
         // map trampoline
+        // 映射 translate 跳板页
         memory_set.map_trampoline();
         // map program headers of elf, with U flag
         let elf = xmas_elf::ElfFile::new(elf_data).unwrap();

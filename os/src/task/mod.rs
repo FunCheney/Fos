@@ -18,8 +18,6 @@ use task::{TaskControlBlock, TaskStatus};
 
 pub use context::TaskContext;
 
-
-
 pub struct TaskManager {
     // 任务管理器管理的任务数目，TaskManager 初始化之后就不会在变化
     num_app: usize,
@@ -57,7 +55,7 @@ lazy_static! {
         let mut tasks: Vec<TaskControlBlock> = Vec::new();
 
         for i in 0..num_app {
-            // 为每个应用创建 TCB 
+            // 为每个应用创建 TCB
             tasks.push(TaskControlBlock::new(
                    // 获取对应程序的 elf 文件
                     get_app_data(i),
@@ -92,8 +90,10 @@ impl TaskManager {
         let current = inner.current_task;
         // 统计内核时间并输出
         inner.tasks[current].kernel_time += inner.refresh_stop_watch();
-        println!("[task {} exited. user_time {} ms, kernel_time {} ms]",
-                 current, inner.tasks[current].user_time, inner.tasks[current].kernel_time);
+        println!(
+            "[task {} exited. user_time {} ms, kernel_time {} ms]",
+            current, inner.tasks[current].user_time, inner.tasks[current].kernel_time
+        );
         inner.tasks[current].task_status = TaskStatus::Exited;
     }
 
@@ -156,7 +156,6 @@ impl TaskManager {
         inner.tasks[current].user_time += inner.refresh_stop_watch();
     }
 
-
     fn get_current_token(&self) -> usize {
         let inner = self.inner.exclusive_access();
         let currnet = inner.current_task;
@@ -168,7 +167,6 @@ impl TaskManager {
         let current = inner.current_task;
         inner.tasks[current].get_trap_cx()
     }
-
 }
 
 pub fn current_uset_token() -> usize {
@@ -187,22 +185,22 @@ static mut SWITCH_TIME_COUNT: usize = 0;
 
 /// 包装 __switch 函数，所有的任务切换都会经过 __switch, 统计它的运行开销
 unsafe fn __switch(current_task_cx_ptr: *mut TaskContext, next_task_cx_ptr: *const TaskContext) {
-
+    // 切换开始时间
     SWITCH_TIME_START = get_time_us();
     crate::task::switch::__switch(current_task_cx_ptr, next_task_cx_ptr);
-
+    // 切换结束总时间
     SWITCH_TIME_COUNT += get_time_us() - SWITCH_TIME_START;
 }
 
 /// 获取总的切换时间
 fn get_switch_time_count() -> usize {
-    unsafe {
-        SWITCH_TIME_COUNT
-    }
+    unsafe { SWITCH_TIME_COUNT }
 }
 
 pub fn exit_current_run_next() {
+    // 标记当前任务退出
     mark_current_exited();
+    // 运行下一个任务
     run_next_task();
 }
 
