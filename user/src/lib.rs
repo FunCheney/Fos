@@ -71,3 +71,43 @@ pub fn yield_() -> isize {
 pub fn get_time() -> isize {
     sys_get_time()
 }
+
+/// 等待任意一个子进程结束
+pub fn wait(exit_code: &mut i32)-> isize {
+    loop {
+        // 传入的参数是 -1
+        match sys_waitpid(-1, exit_code as *mut _) {
+            // 等待的进程存在，但是尚未结束返回 -2
+            -2 => { yield_(); }
+            // -1 or real pid
+            exit_pid => return exit_pid,
+        }
+    }
+}
+
+/// 等待一个进程标识符为 pid 的进程结束
+pub fn wait_pid(pid: usize, exit_code: &mut i32)->isize {
+    loop {
+        match sys_waitpid(pid as isize, exit_code as *mut _) {
+            -2 => { yield_(); }
+            // -1 or real pid
+            exit_pid => return exit_pid,
+        }
+    }
+}
+
+pub fn get_pid() ->isize {
+    sys_getpid()
+}
+
+pub fn fork() -> isize {
+    sys_fork()
+}
+
+pub fn exec(path: &str) -> isize{
+    sys_exec(path)
+}
+
+pub fn read(fd: usize, buf: &mut [u8])->isize {
+    sys_read(fd, buf)
+}

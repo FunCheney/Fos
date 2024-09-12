@@ -1,5 +1,6 @@
 use core::arch::asm;
 
+pub const SYSCALL_READ: usize = 63;
 pub const SYSCALL_WRITE: usize = 64;
 pub const SYSCALL_EXIT: usize = 93;
 pub const SYSCALL_YIELD: usize = 124;
@@ -8,7 +9,7 @@ pub const SYSCALL_TASK_INFO: usize = 410;
 pub const SYSCALL_FORK: usize = 220;
 pub const SYSCALL_GETPID: usize = 172;
 pub const SYSCALL_EXEC: usize = 221;
-pub const SYSCALL_PID: usize = 260;
+pub const SYSCALL_WAITPID: usize = 260;
 
 
 /// 功能: 将系统调用封装成 syscall 函数
@@ -104,7 +105,16 @@ pub fn sys_exec(path: &str) -> isize {
 /// 否则返回结束子进程的进程 pid
 /// syscall id: 260
 pub fn sys_waitpid(pid: isize, exit_code: *mut i32) -> isize {
-    syscall(SYSCALL_EXEC, [pid as usize, exit_code as usize, 0])
+    syscall(SYSCALL_WAITPID, [pid as usize, exit_code as usize, 0])
+}
+
+
+/// 功能: 从文件中读出一段内容到缓冲区
+/// 参数: fd 带读取文件的文件描述符，buffer 切片给出的缓冲区
+/// 返回值: 如果出现错误返回 -1, 否则返回实际读到的字节数
+/// syscall id: 63
+pub fn sys_read(fd: usize, buffer: &mut [u8]) ->isize {
+    syscall(SYSCALL_READ, [fd, buffer.as_mut_ptr() as usize, buffer.len()])
 }
 
 
