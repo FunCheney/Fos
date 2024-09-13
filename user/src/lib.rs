@@ -1,11 +1,29 @@
 #![no_std]
 #![feature(linkage)]  // 启用弱引用链接特性
 #![feature(panic_info_message)]
+#![feature(alloc_error_handler)]
 
 #[macro_use]
 pub mod console;
 mod lang_items;
 mod syscall;
+
+
+use buddy_system_allocator::LockedHeap;
+use syscall::*;
+
+const USER_HEAP_SIZE: usize = 16384;
+static mut HEAP_SPACE: [u8; USER_HEAP_SIZE] = [0; USER_HEAP_SIZE];
+
+#[global_allocator]
+static HEAP: LockedHeap = LockedHeap::empty();
+
+#[alloc_error_handler]
+pub fn handle_alloc_error(layout: core::alloc::Layout) ->! {
+    panic!("Heap alloc error, layout =  {:?}", layout);
+}
+
+
 
 #[no_mangle]
 ///使用 rust 的宏，将_start 这段代码编译后的汇编代码放在一个名为
@@ -15,7 +33,10 @@ mod syscall;
 pub extern "C" fn _start() -> ! {
     // 手动清空需要零初始化的 .bss 段
     //clear_bss();
-
+    unsafe {
+        HEAP.lock()
+            .init(HEAP_SPACE.as_ptr() as usize, USER_HEAP_SIZE);
+    }
     // 然后调用 一个 main 函数的到一个类型值为 i32 的返回值，
     // 最后调用用户库提供的 exit 接口退出应用程序
     exit(main());
@@ -51,8 +72,6 @@ fn clear_bss() {
     });
 }
 
-
-use syscall::*; 
 
 /// 对 syscall 模块中的 sys_exit, sys_write 进一步封装
 pub fn exit(exit_code: i32) -> isize {

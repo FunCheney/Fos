@@ -5,6 +5,8 @@ edition = "2021"
 
 [dependencies]
 #riscv = {git = "https://github.com/rcore-os/riscv", features= ["inline-asm"]}
+buddy_system_allocator="0.6"
+
 
 [profile.release]
 debug = true
