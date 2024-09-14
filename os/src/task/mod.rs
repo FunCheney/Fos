@@ -2,6 +2,7 @@
 /// 应用的执行与切换
 mod context;
 mod switch;
+mod pid;
 
 #[allow(clippy::rodule_inception)]
 mod task;
