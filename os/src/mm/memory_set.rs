@@ -77,6 +77,17 @@ impl MemorySet {
         );
     }
 
+    pub fn remove_area_with_start_vpn(&mut self, start_vpn: VirtPageNum) {
+        if let Some((idx, area)) = self
+            .areas
+            .iter_mut()
+            .enumerate()
+            .find(|(_,area)| area.vpn_range.get_start() == start_vpn)
+        {
+            area.unmap(&mut self.page_table);
+            self.areas.remove(idx);
+        }
+    }
     // 在当前地址空间插入一个新的逻辑段 map_area ，如果它是以 Framed 方式映射到物理内存，
     // 还可以可选地在那些被映射到的物理页帧上写入一些初始化数据 data
     fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) {
@@ -288,6 +299,25 @@ impl MemorySet {
         )
     }
 
+    pub fn from_existed_user(user_space: &Self) -> Self {
+        let mut memory_set = Self::new_bare();
+        memory_set.map_trampoline();
+
+        for area in user_space.areas.iter() {
+            let new_area = MapArea::from_another(area);
+            memory_set.push(new_area, None);
+            for vpn in area.vpn_range {
+                let src_ppn = user_space.translate(vpn).unwrap().ppn();
+                let dst_ppn = memory_set.translate(vpn).unwrap().ppn();
+                dst_ppn
+                    .get_bytes_array()
+                    .copy_from_slice(&src_ppn.get_bytes_array());
+            }
+        }
+
+        memory_set
+    }
+
     /// 使用 activate 方法使其生效
     pub fn activate(&self) {
         // 调用 token 方法
@@ -327,6 +357,10 @@ impl MemorySet {
         } else {
             false
         }
+    }
+
+    pub fn recycle_data_pages(&mut self) {
+        self.areas.clear();
     }
 }
 
@@ -460,6 +494,18 @@ impl MapArea {
             }
             // 数据拷贝完之后调用该方法
             current_vpn.step();
+        }
+    }
+
+    pub fn from_another(another: &MapArea) -> Self {
+        Self {
+            vpn_range: VPNRange::new(
+                another.vpn_range.get_start(), 
+                another.vpn_range.get_end()
+            ),
+            data_frames: BTreeMap::new(),
+            map_type: another.map_type,
+            map_perm: another.map_perm,
         }
     }
 }

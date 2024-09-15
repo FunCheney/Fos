@@ -5,7 +5,7 @@
 mod context;
 
 use crate::config::{TRAMPOLINE, TRAP_CONTEXT};
-use crate::task::{current_trap_cx, current_uset_token, exit_current_run_next};
+use crate::task::{current_trap_cx, current_user_token, exit_current_and_run_next};
 use crate::timer::set_next_trigger;
 use crate::{syscall::syscall, task::suspend_current_and_run_next};
 use core::arch::{asm, global_asm};
@@ -58,13 +58,13 @@ pub fn trap_handler() -> ! {
     set_kernel_trap_entry();
     let cx = current_trap_cx();
     // 进入用户态的时候，可以统计用户态的运行时间
-    crate::task::user_time_end();
     let scause = scause::read();
     let stval = stval::read();
     // 根据 scause 寄存器所保存的 Trap 原因进行分发处理
     match scause.cause() {
         // 发现触发 Trap 的原因是来自 U 特权级的 Environment Call，也就是系统调用
         Trap::Exception(Exception::UserEnvCall) => {
+            let mut cx = current_trap_cx();
             // 首先修改保存在内核栈上的 Trap 上下文里面 sepc，让其增加 4
             // 因为我们知道这是一个由 ecall 指令触发的系统调用，在进入 Trap 的时候，
             // 硬件会将 sepc 设置为这条 ecall 指令所在的地址（因为它是进入 Trap 之前最后一条执行的指令）。
@@ -72,6 +72,7 @@ pub fn trap_handler() -> ! {
             // 因此我们只需修改 Trap 上下文里面的 sepc，让它增加 ecall 指令的码长，也即 4 字节。
             // 这样在 __restore 的时候 sepc 在恢复之后就会指向 ecall 的下一条指令，并在 sret 之后从那里开始执行。
             cx.sepc += 4;
+            cx = current_trap_cx();
             // Trap 上下文取出作为 syscall ID 的 a7 和系统调用的三个参数 a0~a2 传给 syscall 函数并获取返回值。
             // syscall 函数是在 syscall 子模块中实现的。 这段代码是处理正常系统调用的控制逻辑。
             cx.x[10] = syscall(cx.x[17], [cx.x[10], cx.x[11], cx.x[12]]) as usize;
@@ -79,18 +80,20 @@ pub fn trap_handler() -> ! {
 
         Trap::Exception(Exception::StoreFault)
         | Trap::Exception(Exception::StorePageFault)
+        | Trap::Exception(Exception::InstructionPageFault)
+        | Trap::Exception(Exception::InstructionFault)
         | Trap::Exception(Exception::LoadFault)
         | Trap::Exception(Exception::LoadPageFault) => {
             info!("[Kernel] PageFault in app, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.", stval, cx.sepc);
-            exit_current_run_next();
             //run_next_app();
+            exit_current_and_run_next(-2);
             //panic!("[kernel] not continue!");
         }
         Trap::Exception(Exception::IllegalInstruction) => {
             info!("[kernel] IllegalInstruction in application.");
             //panic!("[kernel] not continue!");
             //run_next_app();
-            exit_current_run_next();
+            exit_current_and_run_next(-3)
         }
         Trap::Interrupt(Interrupt::SupervisorTimer) => {
             debug!("[kernel] SupervisorTimer in application.");
@@ -110,7 +113,6 @@ pub fn trap_handler() -> ! {
             );
         }
     }
-    crate::task::user_time_start();
     trap_return();
 }
 
@@ -123,7 +125,7 @@ pub fn trap_return() -> ! {
     // 最后我们需要跳转到 __restore ，以执行：切换到应用地址空间、从 Trap 上下文中恢复通用寄存器、 sret 继续执行应用。
     // 它的关键在于如何找到 __restore 在内核/应用地址空间中共同的虚拟地址。
     let trap_cx_ptr = TRAP_CONTEXT;
-    let user_trap = current_uset_token();
+    let user_trap = current_user_token();
     extern "C" {
         fn __alltraps();
         fn __restore();

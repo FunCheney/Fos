@@ -46,12 +46,14 @@ fn rust_main() -> ! {
     mm::init();
     info!("[kernel] back to os");
     mm::remap_test();
+    task::add_initproc();
     trap::init();
     // 设置了 sie.stie 使得 S 特权级时钟不会被屏蔽
     trap::enable_timer_interrupt();
     // 设置了 10 ms 的计时器
     timer::set_next_trigger();
-    task::run_first_task();
+    loader::list_apps();
+    task::run_tasks();
 
     panic!("unreachable in rust main");
 }

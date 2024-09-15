@@ -6,35 +6,11 @@ use alloc::{rc::Weak, sync::Arc, vec::Vec};
 
 use super::{pid::{pid_alloc, KernelStack, PidHandle}, TaskContext};
 use crate::{
-    config::{kernel_stack_position, TRAP_CONTEXT},
-    mm::{MapPermission, MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE}, 
+    config::TRAP_CONTEXT, 
+    mm::{MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE}, 
     sync::UPSafeCell, 
     trap::{trap_handler, TrapContext}
 };
-
-/// 第四部分 TaskControlBlock 备份
-pub struct TaskControlBlockBak {
-    // 任务状态
-    pub task_status: TaskStatus,
-    // 任务上下文
-    pub task_cx: TaskContext,
-    // 用户态时间
-    pub user_time: usize,
-    pub kernel_time: usize,
-    // 应用的地址空间
-    pub memory_set: MemorySet,
-    // 位于应用地址空间次高页的 Trap 上下文被实际存放在物理页帧的物理页号
-    pub trap_cx_ppn: PhysPageNum,
-    // 统计应用数据的大小，也就是在应用地址空间中从 0x0 开始到用户栈结束一共包含多少字节
-    #[allow(unused)]
-    // 应用数据只有可能出现在应用地址空间低于 base_size 的字节区域中
-    pub base_size: usize,
-    #[allow(unused)]
-    pub heap_bottom: usize,
-    #[allow(unused)]
-    pub program_bak: usize,
-}
-
 
 /// 第五部分: 重构 TaskControlBlock
 pub struct TaskControlBlock {
@@ -95,7 +71,7 @@ impl TaskControlBlockInner {
     }
 
     pub fn get_user_token(&self) -> usize {
-        self.get_user_token()
+        self.memory_set.token()
     }
 
     fn get_status(&self) -> TaskStatus {
@@ -103,82 +79,10 @@ impl TaskControlBlockInner {
     }
 
     pub fn is_zombie(&self) -> bool {
-        self.get_status() == TaskStatus.Zombie
+        self.get_status() == TaskStatus::Zombie
     }
 
 }
-
-impl TaskControlBlockBak {
-    /// 通过 app_id, app_id 对应的 elf 文件创建 任务控制块
-    pub fn new(elf_data: &[u8], app_id: usize) -> Self {
-        // 解析传入的 elf 格式数据结构，构造应用的地址空间 memory_set 并获取其他信息
-        let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
-        // 从地址空间 memory_set 中查多级页表找到应用地址空间中的 Trap 上下文实际被放在哪个物理页帧
-        let trap_cx_ppn = memory_set
-            .translate(VirtAddr::from(TRAP_CONTEXT).into())
-            .unwrap()
-            .ppn();
-
-        // 设置任务的状态为 Ready
-        let task_status = TaskStatus::Ready;
-        // 根据传入的应用 ID app_id 调用在 config 子模块中定义的 kernel_stack_position
-        // 找到应用的内核栈预计放在内核地址空间 KERNEL_SPACE 中的哪个位置，
-        // 并通过 insert_framed_area 实际将这个逻辑段 加入到内核地址空间中；
-        let (kernel_stack_bottom, kernel_stack_top) = kernel_stack_position(app_id);
-        KERNEL_SPACE.exclusive_access().insert_framed_area(
-            kernel_stack_bottom.into(),
-            kernel_stack_top.into(),
-            MapPermission::R | MapPermission::W,
-        );
-        let task_control_block = Self {
-            // 在应用的内核栈顶压入一个跳转到 trap_return 而不是 __restore 的任务上下文，
-            // 这主要是为了能够支持对该应用的启动并顺利切换到用户地址空间执行。
-            // 在构造方式上，只是将 ra 寄存器的值设置为 trap_return 的地址。 trap_return 是后面要介绍的新版的 Trap 处理的一部分。
-            // 这里对裸指针解引用成立的原因在于：当前已经进入了内核地址空间，而要操作的内核栈也是在内核地址空间中的
-            task_status,
-            task_cx: TaskContext::goto_trap_return(kernel_stack_top),
-            user_time: 0,
-            kernel_time: 0,
-            memory_set,
-            trap_cx_ppn,
-            base_size: user_sp,
-            heap_bottom: user_sp,
-            program_bak: user_sp,
-        };
-
-        // 查找该应用的 Trap 上下文的内核虚地址
-        let trap_cx = task_control_block.get_trap_cx();
-        // 调用 TrapContext::app_init_context 函数，通过应用的 Trap 上下文的可变引用来对其进行初始化
-        *trap_cx = TrapContext::app_init_context(
-            entry_point,
-            user_sp,
-            KERNEL_SPACE.exclusive_access().token(),
-            kernel_stack_top,
-            trap_handler as usize,
-        );
-        task_control_block
-    }
-
-    pub fn get_trap_cx(&self) -> &'static mut TrapContext {
-        self.trap_cx_ppn.get_mut()
-    }
-
-    /// 获取页表的起始位置
-    pub fn get_user_token(&self) -> usize {
-        self.memory_set.token()
-    }
-
-    #[allow(unused)]
-    pub fn change_program_brk(&mut self, size: isize) -> Option<isize> {
-        let _old_brk = self.program_bak;
-        let new_brk = self.program_bak as isize + size as isize;
-        if new_brk < self.heap_bottom as isize {
-            return None;
-        }
-        None
-    }
-
-   }
 
 impl TaskControlBlock {
      pub fn inner_exclusive_access(&self) -> RefMut<'_, TaskControlBlockInner> {
@@ -237,8 +141,9 @@ impl TaskControlBlock {
 
     pub fn exec(&self, elf_data: &[u8]) {
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
-        let trap_cx_ppn = memory_set.translate(VirtAddr::from(TRAP_CONTEXT))
-            .into().unwrap().ppn();
+        let trap_cx_ppn = memory_set
+            .translate(VirtAddr::from(TRAP_CONTEXT).into())
+            .unwrap().ppn();
 
         // **** access inner exclusively
         let mut inner = self.inner.exclusive_access();
@@ -247,7 +152,7 @@ impl TaskControlBlock {
         inner.base_size = user_sp;
         let trap_cx = inner.get_trap_cx();
 
-        *trap_cx = TRAP_CONTEXT::app_init_context(
+        *trap_cx = TrapContext::app_init_context(
             entry_point,
             user_sp,
             KERNEL_SPACE.exclusive_access().token(),
@@ -258,7 +163,7 @@ impl TaskControlBlock {
         // **** release inner automatically
     }
 
-    pub fn fork(self: &Arc<Self>) -> &Arc<Self> {
+    pub fn fork(self: &Arc<Self>) -> Arc<Self> {
         // --- access parent PCB exclusively
         let mut parent_inner = self.inner_exclusive_access();
 
