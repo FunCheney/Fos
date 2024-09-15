@@ -73,7 +73,7 @@ pub fn sys_get_time() -> isize{
     syscall(SYSCALL_GET_TIME, [0,0,0])
 }
 
-
+#[allow(unused)]
 pub fn sys_get_task_info() -> isize {
     syscall(SYSCALL_TASK_INFO, [0, 0, 0])
 }
@@ -114,7 +114,11 @@ pub fn sys_waitpid(pid: isize, exit_code: *mut i32) -> isize {
 /// 返回值: 如果出现错误返回 -1, 否则返回实际读到的字节数
 /// syscall id: 63
 pub fn sys_read(fd: usize, buffer: &mut [u8]) ->isize {
-    syscall(SYSCALL_READ, [fd, buffer.as_mut_ptr() as usize, buffer.len()])
+    syscall(
+        SYSCALL_READ, 
+        [fd, buffer.as_mut_ptr() as usize, buffer.len()],
+    )
+
 }
 
 

@@ -1,10 +1,6 @@
 #![no_std]
 #![no_main]
-
-use core::char;
-
-use alloc::string::String;
-use user_lib::{console::getchar, exec, fork, wait_pid};
+#![allow(clippy::println_empty_string)]
 
 extern crate alloc;
 
@@ -16,38 +12,39 @@ const CR: u8 = 0x0du8;
 const DL: u8 = 0x7fu8;
 const BS: u8 = 0x08u8;
 
+use alloc::string::String;
+use user_lib::console::getchar;
+use user_lib::{exec, fork, waitpid};
 
 #[no_mangle]
-pub fn main()-> i32 {
-    print!("RUST user shell");
+pub fn main() -> i32 {
+    println!("Rust user shell");
     let mut line: String = String::new();
-    print!(">>");
+    print!(">> ");
     loop {
         let c = getchar();
         match c {
             LF | CR => {
-                println!(" ");
+                println!("");
                 if !line.is_empty() {
                     line.push('\0');
                     let pid = fork();
                     if pid == 0 {
                         // child process
                         if exec(line.as_str()) == -1 {
-                            println!("error when exec");
+                            println!("Error when executing!");
                             return -4;
                         }
                         unreachable!();
                     } else {
                         let mut exit_code: i32 = 0;
-                        let exit_pid = wait_pid(pid as usize, &mut  exit_code);
+                        let exit_pid = waitpid(pid as usize, &mut exit_code);
                         assert_eq!(pid, exit_pid);
                         println!("Shell: Process {} exited with code {}", pid, exit_code);
                     }
-
                     line.clear();
                 }
-
-                print!(">>>>");
+                print!(">> ");
             }
             BS | DL => {
                 if !line.is_empty() {
@@ -57,13 +54,10 @@ pub fn main()-> i32 {
                     line.pop();
                 }
             }
-            
-            _=> {
+            _ => {
                 print!("{}", c as char);
                 line.push(c as char);
             }
         }
     }
 }
-
-
