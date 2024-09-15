@@ -2,7 +2,7 @@
 
 use core::cell::RefMut;
 
-use alloc::{rc::Weak, sync::Arc, vec::Vec};
+use alloc::{sync::Weak, sync::Arc, vec::Vec};
 
 use super::{pid::{pid_alloc, KernelStack, PidHandle}, TaskContext};
 use crate::{
@@ -32,7 +32,9 @@ pub struct TaskControlBlockInner {
     // 任务上下文
     pub task_cx: TaskContext,
     // 用户态时间
+    #[allow(unused)]
     pub user_time: usize,
+    #[allow(unused)]
     pub kernel_time: usize,
     // 应用的地址空间
     pub memory_set: MemorySet,
@@ -62,6 +64,7 @@ pub enum TaskStatus {
     Ready,   // 准备运行
     Running, // 正在运行
     Zombie,  // 僵尸
+    #[allow(unused)]
     Exited,  // 已退出
 }
 

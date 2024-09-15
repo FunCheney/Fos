@@ -13,15 +13,13 @@ use crate::loader:: get_app_data_by_name;
 use crate::sbi::shutdown;
 use alloc::sync::Arc;
 use lazy_static::*;
-pub use  manager::{add_task, fetch_task, TaskManager};
+pub use  manager::{add_task, fetch_task};
 use switch::__switch;
 use task::{TaskControlBlock, TaskStatus};
 pub use context::TaskContext;
-pub use pid::{PidHandle, pid_alloc, KernelStack, PidAllocator};
 pub use processor::{
     current_task,current_trap_cx,current_user_token,
     run_tasks,schedule,take_current_task,
-    Processor,
 };
 
 pub fn suspend_current_and_run_next() {
@@ -75,12 +73,12 @@ pub fn exit_current_and_run_next(exit_code: i32) {
     schedule(&mut unused as *mut _);
 }
 
-
 lazy_static! {
-    pub static ref INITPROC: Arc<TaskControlBlock> = Arc::new(
-        TaskControlBlock::new(get_app_data_by_name("initproc").unwrap())
-    );
+    pub static ref INITPROC: Arc<TaskControlBlock> = Arc::new(TaskControlBlock::new(
+            get_app_data_by_name("initproc").unwrap()
+        ));
 }
+
 
 pub fn add_initproc() {
     add_task(INITPROC.clone())

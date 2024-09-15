@@ -2,11 +2,10 @@
 
 
 use alloc::vec::Vec;
-use riscv::addr::VirtAddr;
 use lazy_static::*;
 use crate::{
     config::{KERNEL_STACK_SIZE, PAGE_SIZE, TRAMPOLINE},
-    mm::{MapPermission, KERNEL_SPACE}};
+    mm::{MapPermission, VirtAddr, KERNEL_SPACE}};
 
 use crate::sync::UPSafeCell;
 
@@ -89,6 +88,7 @@ impl KernelStack {
         }
     }
 
+    #[allow(unused)]
     pub fn push_on_top<T>(&self, value: T) -> *mut T
     where 
          T: Sized 

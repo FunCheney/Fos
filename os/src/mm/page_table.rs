@@ -1,11 +1,10 @@
 //! Implementation of [`PageTableEntry`] and [`PageTable`].
 
-use super::{frame_alloc, FrameTracker, PhysPageNum, StepByOne, VirtAddr, VirtPageNum};
+use super::{frame_alloc, FrameTracker, PhysAddr, PhysPageNum, StepByOne, VirtAddr, VirtPageNum};
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use bitflags::*;
-use riscv::addr::PhysAddr;
 
 bitflags! {
     /// page table entry flags
@@ -174,8 +173,8 @@ impl PageTable {
         self.find_pte(va.clone().floor()).map(|pte|{
             let aligned_pa: PhysAddr = pte.ppn().into();
             let offset = va.page_offset();
-            let aligend_pa_usize: usize = aligned_pa.into();
-            (aligend_pa_usize + offset).into()
+            let aligned_pa_usize: usize = aligned_pa.into();
+            (aligned_pa_usize + offset).into()
         })
     }
 
