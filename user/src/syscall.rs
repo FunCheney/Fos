@@ -1,10 +1,17 @@
 use core::arch::asm;
 
+pub const SYSCALL_READ: usize = 63;
 pub const SYSCALL_WRITE: usize = 64;
 pub const SYSCALL_EXIT: usize = 93;
 pub const SYSCALL_YIELD: usize = 124;
 pub const SYSCALL_GET_TIME: usize = 169; 
 pub const SYSCALL_TASK_INFO: usize = 410;
+pub const SYSCALL_FORK: usize = 220;
+pub const SYSCALL_GETPID: usize = 172;
+pub const SYSCALL_EXEC: usize = 221;
+pub const SYSCALL_WAITPID: usize = 260;
+
+
 /// 功能: 将系统调用封装成 syscall 函数
 /// 参数: 'id' 系统调用id 
 ///       'args' 三个参数
@@ -66,7 +73,53 @@ pub fn sys_get_time() -> isize{
     syscall(SYSCALL_GET_TIME, [0,0,0])
 }
 
-
+#[allow(unused)]
 pub fn sys_get_task_info() -> isize {
     syscall(SYSCALL_TASK_INFO, [0, 0, 0])
 }
+
+/// 功能: 从当前进程 fork 出一个子进程来
+/// 返回值: 对于子进程方会0, 对于当前进程返回子进程 PID
+/// syscall ID: 220
+pub fn sys_fork() -> isize {
+    syscall(SYSCALL_FORK, [0, 0, 0])
+}
+
+/// 功能: 当前
+pub fn sys_getpid() -> isize{
+    syscall(SYSCALL_GETPID, [0, 0, 0])
+}
+
+/// 功能: 将当前进程的地址空间清空，并加载一个特定的可执行文件，返回用户态之后开始执行他
+/// 参数: path 给出了要加载的可执行文件的名字
+/// 返回值: 如果出错的话（如果找不到名字相符的可执行文件）则返回 -1, 否则不应该返回
+/// syscall ID: 221
+pub fn sys_exec(path: &str) -> isize {
+    syscall(SYSCALL_EXEC, [path.as_ptr() as usize, 0, 0])
+}
+
+/// 功能: 当前进程等待一个子进程变为僵尸进程，回收其全部资源并收集其返回值
+/// 参数: pid 表示要等待的子进程的进程id，如果返回 -1 表示等待任意一个子进程
+/// exit_code 表示保存子进程返回值的地址，如果该值为 0 表示不必保存
+/// 返回值: 如果等待的子进程不存在则返回 -1; 否则如果等待的子进程均未结束则返回 -2
+/// 否则返回结束子进程的进程 pid
+/// syscall id: 260
+pub fn sys_waitpid(pid: isize, exit_code: *mut i32) -> isize {
+    syscall(SYSCALL_WAITPID, [pid as usize, exit_code as usize, 0])
+}
+
+
+/// 功能: 从文件中读出一段内容到缓冲区
+/// 参数: fd 带读取文件的文件描述符，buffer 切片给出的缓冲区
+/// 返回值: 如果出现错误返回 -1, 否则返回实际读到的字节数
+/// syscall id: 63
+pub fn sys_read(fd: usize, buffer: &mut [u8]) ->isize {
+    syscall(
+        SYSCALL_READ, 
+        [fd, buffer.as_mut_ptr() as usize, buffer.len()],
+    )
+
+}
+
+
+

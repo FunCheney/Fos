@@ -7,6 +7,11 @@ pub fn set_timer(timer:  usize) {
     sbi_rt::set_timer(timer as _);
 }
 
+pub fn console_getchar() -> usize{
+    #[allow(deprecated)]
+    sbi_rt::legacy::console_getchar()
+}
+
 pub fn shutdown(failure: bool) -> !{
     use::sbi_rt::{system_reset, NoReason, Shutdown, SystemFailure};
     if !failure {
