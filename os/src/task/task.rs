@@ -15,9 +15,9 @@ use crate::{
 /// 第五部分: 重构 TaskControlBlock
 pub struct TaskControlBlock {
     // 不可变便变量，初始化之后就不再变化的数据
-    // 进程标识符
+    // 进程标识符, 进程创建完成之后会有一个自己的标识符
     pub pid: PidHandle,
-    // 内核栈
+    // 进程内核栈
     pub kernel_stack: KernelStack,
     // 可变变量
     // 在运行过程中可能发生变化的数据
@@ -166,6 +166,13 @@ impl TaskControlBlock {
         // **** release inner automatically
     }
 
+    /// TCB 的构建过程，复制父进程的内容，并构造新的进程控制块
+    /// 1. 建立新页表
+    /// 2. 创建新的陷入上下文
+    /// 3, 创建新的应用内核栈
+    /// 4. 创建任务上下文
+    /// 5. 建立父子关系
+    /// 6. 设置 0 为 fork 返回码
     pub fn fork(self: &Arc<Self>) -> Arc<Self> {
         // --- access parent PCB exclusively
         let mut parent_inner = self.inner_exclusive_access();

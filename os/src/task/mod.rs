@@ -74,13 +74,20 @@ pub fn exit_current_and_run_next(exit_code: i32) {
 }
 
 lazy_static! {
-    pub static ref INITPROC: Arc<TaskControlBlock> = Arc::new(TaskControlBlock::new(
+    /// 初始化进程管理
+    /// 第一个用户进程
+    /// 内嵌 initproc 在操作系统中                                            
+    pub static ref INITPROC: Arc<TaskControlBlock> = Arc::new(
+        // 解析 elf 文件，并建立应用的地址空间，内核栈，形成一个就绪的进程控制块
+        TaskControlBlock::new(
             get_app_data_by_name("initproc").unwrap()
         ));
 }
 
 
 pub fn add_initproc() {
+    // 添加第一个进程，它是唯一一个不是通过 fork 创建的进程
+    // 添加到就绪队列中
     add_task(INITPROC.clone())
 }
 

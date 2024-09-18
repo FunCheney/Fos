@@ -4,9 +4,11 @@ use super::{fetch_task, TaskStatus};
 use super::{TaskControlBlock, TaskContext, __switch};
 use lazy_static::*;
 
-
+/// 处理器管理结构，描述 CPU 执行状态
 pub struct Processor {
+    // 在当前处理器上正在执行的任务
     current: Option<Arc<TaskControlBlock>>,
+    // 空闲任务
     idle_task_cx: TaskContext,
 }
 
