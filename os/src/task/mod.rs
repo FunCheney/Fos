@@ -34,7 +34,12 @@ pub fn suspend_current_and_run_next() {
 
 pub const IDEL_PID: usize = 0;
 
-
+/// 退出当前的进程
+/// 1. 当前进程从控制块 PROCESSOR 中取出
+/// 2. 把 exit_code 写入到进程控制块中
+/// 3. 把自己挂到 initproc 的子进程集合值中
+/// 4. 释放应用地址空间
+/// 5. 接着调度 schedule 来触发函数调度并切换任务
 pub fn exit_current_and_run_next(exit_code: i32) {
 
     let task = take_current_task().unwrap();

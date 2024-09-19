@@ -27,6 +27,9 @@ pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
 }
 
 
+/// 字符输入机制
+/// 目前仅支持每次只能读入一个字符
+/// 调用 sbi 子模块提供的从键盘获取输入的接口
 pub fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
     match fd {
         FD_IN => {
