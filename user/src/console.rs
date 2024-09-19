@@ -21,6 +21,7 @@ pub fn print(args: fmt::Arguments) {
 }
 
 pub fn getchar() -> u8 {
+    // 每次声明一个长度为 1 的缓冲区
     let mut c = [0u8; 1];
     read(STDIN, &mut c);
     c[0]

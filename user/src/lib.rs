@@ -108,7 +108,8 @@ pub fn wait(exit_code: &mut i32)-> isize {
 pub fn waitpid(pid: usize, exit_code: &mut i32)->isize {
     loop {
         match sys_waitpid(pid as isize, exit_code as *mut _) {
-            -2 => { yield_(); }
+            // 要等待的子进程存在但是尚未退出
+            -2 => { yield_(); } // 调用 yield_ 主动让出 cpu
             // -1 or real pid
             exit_pid => return exit_pid,
         }
