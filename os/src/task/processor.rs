@@ -1,7 +1,7 @@
-use alloc::sync::Arc;
-use crate::{sync::UPSafeCell, trap::TrapContext};
 use super::{fetch_task, TaskStatus};
-use super::{TaskControlBlock, TaskContext, __switch};
+use super::{TaskContext, TaskControlBlock, __switch};
+use crate::{sync::UPSafeCell, trap::TrapContext};
+use alloc::sync::Arc;
 use lazy_static::*;
 
 /// 处理器管理结构，描述 CPU 执行状态
@@ -20,22 +20,21 @@ impl Processor {
         }
     }
 
-
     fn get_idle_task_cx_ptr(&mut self) -> *mut TaskContext {
         &mut self.idle_task_cx as *mut _
     }
 
-    pub fn  take_current(&mut self) ->Option<Arc<TaskControlBlock>> {
+    pub fn take_current(&mut self) -> Option<Arc<TaskControlBlock>> {
         self.current.take()
     }
 
-    pub fn current(&self) -> Option<Arc<TaskControlBlock>>{
+    pub fn current(&self) -> Option<Arc<TaskControlBlock>> {
         self.current.as_ref().map(Arc::clone)
     }
 }
 
 lazy_static! {
-    pub static ref PROCESSOR: UPSafeCell<Processor> = unsafe { UPSafeCell::new(Processor::new())};
+    pub static ref PROCESSOR: UPSafeCell<Processor> = unsafe { UPSafeCell::new(Processor::new()) };
 }
 
 pub fn run_tasks() {
@@ -59,7 +58,7 @@ pub fn run_tasks() {
     }
 }
 
-pub fn take_current_task()->Option<Arc<TaskControlBlock>> {
+pub fn take_current_task() -> Option<Arc<TaskControlBlock>> {
     PROCESSOR.exclusive_access().take_current()
 }
 
@@ -73,7 +72,7 @@ pub fn current_user_token() -> usize {
     token
 }
 
-pub fn current_trap_cx() -> &'static mut TrapContext{
+pub fn current_trap_cx() -> &'static mut TrapContext {
     current_task()
         .unwrap()
         .inner_exclusive_access()

@@ -2,14 +2,17 @@
 
 use core::cell::RefMut;
 
-use alloc::{sync::Weak, sync::Arc, vec::Vec};
+use alloc::{sync::Arc, sync::Weak, vec::Vec};
 
-use super::{pid::{pid_alloc, KernelStack, PidHandle}, TaskContext};
+use super::{
+    pid::{pid_alloc, KernelStack, PidHandle},
+    TaskContext,
+};
 use crate::{
-    config::TRAP_CONTEXT, 
-    mm::{MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE}, 
-    sync::UPSafeCell, 
-    trap::{trap_handler, TrapContext}
+    config::TRAP_CONTEXT,
+    mm::{MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE},
+    sync::UPSafeCell,
+    trap::{trap_handler, TrapContext},
 };
 
 /// 第五部分: 重构 TaskControlBlock
@@ -65,11 +68,11 @@ pub enum TaskStatus {
     Running, // 正在运行
     Zombie,  // 僵尸
     #[allow(unused)]
-    Exited,  // 已退出
+    Exited, // 已退出
 }
 
 impl TaskControlBlockInner {
-    pub fn get_trap_cx(&self) -> &'static mut TrapContext{
+    pub fn get_trap_cx(&self) -> &'static mut TrapContext {
         self.trap_cx_ppn.get_mut()
     }
 
@@ -84,11 +87,10 @@ impl TaskControlBlockInner {
     pub fn is_zombie(&self) -> bool {
         self.get_status() == TaskStatus::Zombie
     }
-
 }
 
 impl TaskControlBlock {
-     pub fn inner_exclusive_access(&self) -> RefMut<'_, TaskControlBlockInner> {
+    pub fn inner_exclusive_access(&self) -> RefMut<'_, TaskControlBlockInner> {
         self.inner.exclusive_access()
     }
 
@@ -113,7 +115,7 @@ impl TaskControlBlock {
             pid: pid_handle,
             kernel_stack,
             inner: unsafe {
-                UPSafeCell::new(TaskControlBlockInner{
+                UPSafeCell::new(TaskControlBlockInner {
                     task_status: TaskStatus::Ready,
                     task_cx: TaskContext::goto_trap_return(kernel_stack_top),
                     user_time: 0,
@@ -125,7 +127,7 @@ impl TaskControlBlock {
                     program_bak: user_sp,
                     parent: None,
                     children: Vec::new(),
-                    exit_code: 0
+                    exit_code: 0,
                 })
             },
         };
@@ -135,7 +137,7 @@ impl TaskControlBlock {
             entry_point,
             user_sp,
             KERNEL_SPACE.exclusive_access().token(),
-            kernel_stack_top, 
+            kernel_stack_top,
             trap_handler as usize,
         );
 
@@ -146,7 +148,8 @@ impl TaskControlBlock {
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
         let trap_cx_ppn = memory_set
             .translate(VirtAddr::from(TRAP_CONTEXT).into())
-            .unwrap().ppn();
+            .unwrap()
+            .ppn();
 
         // **** access inner exclusively
         let mut inner = self.inner.exclusive_access();
@@ -179,18 +182,20 @@ impl TaskControlBlock {
 
         let memory_set = MemorySet::from_existed_user(&parent_inner.memory_set);
 
-        let trap_cx_ppn = memory_set.translate(VirtAddr::from(TRAP_CONTEXT).into())
-            .unwrap().ppn();
-        
+        let trap_cx_ppn = memory_set
+            .translate(VirtAddr::from(TRAP_CONTEXT).into())
+            .unwrap()
+            .ppn();
+
         let pid_handle = pid_alloc();
         let kernel_stack = KernelStack::new(&pid_handle);
         let kernel_stack_top = kernel_stack.get_top();
 
-        let task_control_block = Arc::new(TaskControlBlock{
+        let task_control_block = Arc::new(TaskControlBlock {
             pid: pid_handle,
             kernel_stack,
             inner: unsafe {
-                UPSafeCell::new(TaskControlBlockInner{
+                UPSafeCell::new(TaskControlBlockInner {
                     task_status: TaskStatus::Ready,
                     task_cx: TaskContext::goto_trap_return(kernel_stack_top),
                     user_time: 0,
@@ -218,5 +223,4 @@ impl TaskControlBlock {
         // ---- release parent PCB automatically
         // **** release children PCB automatically
     }
-
 }

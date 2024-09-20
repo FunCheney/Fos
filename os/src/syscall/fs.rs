@@ -3,7 +3,7 @@
 use crate::task::suspend_current_and_run_next;
 use crate::{mm::translated_byte_buffer, task::current_user_token};
 
-use crate::sbi::{console_getchar};
+use crate::sbi::console_getchar;
 
 const FD_STDOUT: usize = 1;
 const FD_IN: usize = 0;
@@ -26,7 +26,6 @@ pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
     }
 }
 
-
 /// 字符输入机制
 /// 目前仅支持每次只能读入一个字符
 /// 调用 sbi 子模块提供的从键盘获取输入的接口
@@ -37,10 +36,10 @@ pub fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
             let mut c: usize;
             loop {
                 c = console_getchar();
-                if c==0 {
+                if c == 0 {
                     suspend_current_and_run_next();
                     continue;
-                }else {
+                } else {
                     break;
                 }
             }

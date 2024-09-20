@@ -1,26 +1,25 @@
 //! os/src/task/mod.rs
 /// 应用的执行与切换
 mod context;
-mod switch;
-mod pid;
 mod manager;
+mod pid;
 mod processor;
+mod switch;
 
 #[allow(clippy::rodule_inception)]
 mod task;
 
-use crate::loader:: get_app_data_by_name;
+use crate::loader::get_app_data_by_name;
 use crate::sbi::shutdown;
 use alloc::sync::Arc;
+pub use context::TaskContext;
 use lazy_static::*;
-pub use  manager::{add_task, fetch_task};
+pub use manager::{add_task, fetch_task};
+pub use processor::{
+    current_task, current_trap_cx, current_user_token, run_tasks, schedule, take_current_task,
+};
 use switch::__switch;
 use task::{TaskControlBlock, TaskStatus};
-pub use context::TaskContext;
-pub use processor::{
-    current_task,current_trap_cx,current_user_token,
-    run_tasks,schedule,take_current_task,
-};
 
 pub fn suspend_current_and_run_next() {
     let task = take_current_task().unwrap();
@@ -41,19 +40,15 @@ pub const IDEL_PID: usize = 0;
 /// 4. 释放应用地址空间
 /// 5. 接着调度 schedule 来触发函数调度并切换任务
 pub fn exit_current_and_run_next(exit_code: i32) {
-
     let task = take_current_task().unwrap();
     let pid = task.get_pid();
 
     if pid == IDEL_PID {
-        
-        println!(
-            "kernel Idle processor exit with exit_code {}", exit_code
-        );
+        println!("kernel Idle processor exit with exit_code {}", exit_code);
 
         if exit_code != 0 {
             shutdown(true)
-        }else {
+        } else {
             shutdown(false)
         }
     }
@@ -64,7 +59,7 @@ pub fn exit_current_and_run_next(exit_code: i32) {
 
     {
         let mut initproc_inner = INITPROC.inner_exclusive_access();
-        for children in inner.children.iter()  {
+        for children in inner.children.iter() {
             children.inner_exclusive_access().parent = Some(Arc::downgrade(&INITPROC));
             initproc_inner.children.push(children.clone());
         }
@@ -89,11 +84,8 @@ lazy_static! {
         ));
 }
 
-
 pub fn add_initproc() {
     // 添加第一个进程，它是唯一一个不是通过 fork 创建的进程
     // 添加到就绪队列中
     add_task(INITPROC.clone())
 }
-
-
