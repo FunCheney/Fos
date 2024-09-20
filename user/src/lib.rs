@@ -1,5 +1,5 @@
 #![no_std]
-#![feature(linkage)]  // 启用弱引用链接特性
+#![feature(linkage)] // 启用弱引用链接特性
 #![feature(panic_info_message)]
 #![feature(alloc_error_handler)]
 
@@ -7,7 +7,6 @@
 pub mod console;
 mod lang_items;
 mod syscall;
-
 
 use buddy_system_allocator::LockedHeap;
 use syscall::*;
@@ -19,11 +18,9 @@ static mut HEAP_SPACE: [u8; USER_HEAP_SIZE] = [0; USER_HEAP_SIZE];
 static HEAP: LockedHeap = LockedHeap::empty();
 
 #[alloc_error_handler]
-pub fn handle_alloc_error(layout: core::alloc::Layout) ->! {
+pub fn handle_alloc_error(layout: core::alloc::Layout) -> ! {
     panic!("Heap alloc error, layout =  {:?}", layout);
 }
-
-
 
 #[no_mangle]
 ///使用 rust 的宏，将_start 这段代码编译后的汇编代码放在一个名为
@@ -53,7 +50,6 @@ fn main() -> i32 {
     panic!("not found main");
 }
 
-
 #[allow(unused)]
 fn clear_bss() {
     extern "C" {
@@ -72,7 +68,6 @@ fn clear_bss() {
     });
 }
 
-
 /// 对 syscall 模块中的 sys_exit, sys_write 进一步封装
 pub fn exit(exit_code: i32) -> isize {
     sys_exit(exit_code)
@@ -86,18 +81,19 @@ pub fn yield_() -> isize {
     sys_yield()
 }
 
-
 pub fn get_time() -> isize {
     sys_get_time()
 }
 
 /// 等待任意一个子进程结束
-pub fn wait(exit_code: &mut i32)-> isize {
+pub fn wait(exit_code: &mut i32) -> isize {
     loop {
         // 传入的参数是 -1
         match sys_waitpid(-1, exit_code as *mut _) {
             // 等待的进程存在，但是尚未结束返回 -2
-            -2 => { yield_(); }
+            -2 => {
+                yield_();
+            }
             // -1 or real pid
             exit_pid => return exit_pid,
         }
@@ -105,18 +101,20 @@ pub fn wait(exit_code: &mut i32)-> isize {
 }
 
 /// 等待一个进程标识符为 pid 的进程结束
-pub fn waitpid(pid: usize, exit_code: &mut i32)->isize {
+pub fn waitpid(pid: usize, exit_code: &mut i32) -> isize {
     loop {
         match sys_waitpid(pid as isize, exit_code as *mut _) {
             // 要等待的子进程存在但是尚未退出
-            -2 => { yield_(); } // 调用 yield_ 主动让出 cpu
+            -2 => {
+                yield_();
+            } // 调用 yield_ 主动让出 cpu
             // -1 or real pid
             exit_pid => return exit_pid,
         }
     }
 }
 
-pub fn getpid() ->isize {
+pub fn getpid() -> isize {
     sys_getpid()
 }
 
@@ -124,10 +122,10 @@ pub fn fork() -> isize {
     sys_fork()
 }
 
-pub fn exec(path: &str) -> isize{
+pub fn exec(path: &str) -> isize {
     sys_exec(path)
 }
 
-pub fn read(fd: usize, buf: &mut [u8])->isize {
+pub fn read(fd: usize, buf: &mut [u8]) -> isize {
     sys_read(fd, buf)
 }

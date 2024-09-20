@@ -27,7 +27,6 @@ pub fn getchar() -> u8 {
     c[0]
 }
 
-
 #[macro_export]
 macro_rules! print {
     ($fmt: literal $(, $($arg: tt)+)?) => {
