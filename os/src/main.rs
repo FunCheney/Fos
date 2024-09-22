@@ -58,6 +58,7 @@ fn rust_main() -> ! {
     timer::set_next_trigger();
     info!("[kernel| get user app...");
     loader::list_apps();
+    // 调用 run-tasks
     info!("[kernel] run task...");
     task::run_tasks();
 

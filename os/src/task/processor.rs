@@ -20,6 +20,7 @@ impl Processor {
         }
     }
 
+    // 获取空闲任务
     fn get_idle_task_cx_ptr(&mut self) -> *mut TaskContext {
         &mut self.idle_task_cx as *mut _
     }
@@ -33,19 +34,24 @@ impl Processor {
     }
 }
 
+/// 初始化一个 PROCESSOR 第一此调用的时候会被加载
 lazy_static! {
     pub static ref PROCESSOR: UPSafeCell<Processor> = unsafe { UPSafeCell::new(Processor::new()) };
 }
 
 pub fn run_tasks() {
+    // 循环
     loop {
         let mut processor = PROCESSOR.exclusive_access();
+        // 选择一个用来切换的进程
         if let Some(task) = fetch_task() {
+            // 获取空闲的进程
             let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
 
             let mut task_inner = task.inner_exclusive_access();
 
             let next_task_cx_ptr = &task_inner.task_cx as *const TaskContext;
+            // 修改进程状态
             task_inner.task_status = TaskStatus::Running;
             drop(task_inner);
             processor.current = Some(task);
@@ -79,6 +85,7 @@ pub fn current_trap_cx() -> &'static mut TrapContext {
         .get_trap_cx()
 }
 
+/// 进程调度的方法
 pub fn schedule(switched_task_cx_ptr: *mut TaskContext) {
     let mut processor = PROCESSOR.exclusive_access();
     let idle_task_cx = processor.get_idle_task_cx_ptr();

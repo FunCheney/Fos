@@ -59,12 +59,13 @@ pub fn pid_alloc() -> PidHandle {
     PID_ALLOCATOR.exclusive_access().alloc()
 }
 
+/// 每个 pid 的进程，获取到其内核栈的栈顶与栈底
 pub fn kernel_stack_position(app_id: usize) -> (usize, usize) {
     let top = TRAMPOLINE - app_id * (KERNEL_STACK_SIZE + PAGE_SIZE);
     let bottom = top - KERNEL_STACK_SIZE;
     (bottom, top)
 }
-
+/// 定义内核堆栈
 pub struct KernelStack {
     pid: usize,
 }

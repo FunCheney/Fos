@@ -145,6 +145,7 @@ impl TaskControlBlock {
     }
 
     pub fn exec(&self, elf_data: &[u8]) {
+        /// 解析 elf文件创建 地址空间
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
         let trap_cx_ppn = memory_set
             .translate(VirtAddr::from(TRAP_CONTEXT).into())
@@ -153,11 +154,13 @@ impl TaskControlBlock {
 
         // **** access inner exclusively
         let mut inner = self.inner.exclusive_access();
+        // 绑定到新创建的 memory_set
         inner.memory_set = memory_set;
         inner.trap_cx_ppn = trap_cx_ppn;
         inner.base_size = user_sp;
         let trap_cx = inner.get_trap_cx();
 
+        // 修改 trap_cx
         *trap_cx = TrapContext::app_init_context(
             entry_point,
             user_sp,
@@ -179,9 +182,9 @@ impl TaskControlBlock {
     pub fn fork(self: &Arc<Self>) -> Arc<Self> {
         // --- access parent PCB exclusively
         let mut parent_inner = self.inner_exclusive_access();
-
+        // 复制一份地址空间
         let memory_set = MemorySet::from_existed_user(&parent_inner.memory_set);
-
+        // 分配 物理页
         let trap_cx_ppn = memory_set
             .translate(VirtAddr::from(TRAP_CONTEXT).into())
             .unwrap()
