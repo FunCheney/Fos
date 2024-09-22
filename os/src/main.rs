@@ -43,16 +43,23 @@ fn rust_main() -> ! {
     clear_bss();
     logging::init();
     info!("[kernel] hello, gjh os!");
+    // 初始内存管理模块
     mm::init();
     info!("[kernel] back to os");
     mm::remap_test();
+    // 添加初始化进程
     task::add_initproc();
+    info!("[kernel] init process...");
     trap::init();
+    info!("[kernel] trap init...");
     // 设置了 sie.stie 使得 S 特权级时钟不会被屏蔽
     trap::enable_timer_interrupt();
     // 设置了 10 ms 的计时器
     timer::set_next_trigger();
+    info!("[kernel| get user app...");
     loader::list_apps();
+    // 调用 run-tasks
+    info!("[kernel] run task...");
     task::run_tasks();
 
     panic!("unreachable in rust main");

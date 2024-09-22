@@ -82,7 +82,7 @@ impl MemorySet {
             .areas
             .iter_mut()
             .enumerate()
-            .find(|(_,area)| area.vpn_range.get_start() == start_vpn)
+            .find(|(_, area)| area.vpn_range.get_start() == start_vpn)
         {
             area.unmap(&mut self.page_table);
             self.areas.remove(idx);
@@ -315,7 +315,9 @@ impl MemorySet {
             let new_area = MapArea::from_another(area);
             memory_set.push(new_area, None);
             for vpn in area.vpn_range {
+                // 父进程的物理地址页号
                 let src_ppn = user_space.translate(vpn).unwrap().ppn();
+                // 子进程的物理地址页号
                 let dst_ppn = memory_set.translate(vpn).unwrap().ppn();
                 dst_ppn
                     .get_bytes_array()
@@ -508,10 +510,7 @@ impl MapArea {
 
     pub fn from_another(another: &MapArea) -> Self {
         Self {
-            vpn_range: VPNRange::new(
-                another.vpn_range.get_start(), 
-                another.vpn_range.get_end()
-            ),
+            vpn_range: VPNRange::new(another.vpn_range.get_start(), another.vpn_range.get_end()),
             data_frames: BTreeMap::new(),
             map_type: another.map_type,
             map_perm: another.map_perm,

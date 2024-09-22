@@ -2,22 +2,25 @@
 
 use core::cell::RefMut;
 
-use alloc::{sync::Weak, sync::Arc, vec::Vec};
+use alloc::{sync::Arc, sync::Weak, vec::Vec};
 
-use super::{pid::{pid_alloc, KernelStack, PidHandle}, TaskContext};
+use super::{
+    pid::{pid_alloc, KernelStack, PidHandle},
+    TaskContext,
+};
 use crate::{
-    config::TRAP_CONTEXT, 
-    mm::{MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE}, 
-    sync::UPSafeCell, 
-    trap::{trap_handler, TrapContext}
+    config::TRAP_CONTEXT,
+    mm::{MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE},
+    sync::UPSafeCell,
+    trap::{trap_handler, TrapContext},
 };
 
 /// 第五部分: 重构 TaskControlBlock
 pub struct TaskControlBlock {
     // 不可变便变量，初始化之后就不再变化的数据
-    // 进程标识符
+    // 进程标识符, 进程创建完成之后会有一个自己的标识符
     pub pid: PidHandle,
-    // 内核栈
+    // 进程内核栈
     pub kernel_stack: KernelStack,
     // 可变变量
     // 在运行过程中可能发生变化的数据
@@ -65,11 +68,11 @@ pub enum TaskStatus {
     Running, // 正在运行
     Zombie,  // 僵尸
     #[allow(unused)]
-    Exited,  // 已退出
+    Exited, // 已退出
 }
 
 impl TaskControlBlockInner {
-    pub fn get_trap_cx(&self) -> &'static mut TrapContext{
+    pub fn get_trap_cx(&self) -> &'static mut TrapContext {
         self.trap_cx_ppn.get_mut()
     }
 
@@ -84,11 +87,10 @@ impl TaskControlBlockInner {
     pub fn is_zombie(&self) -> bool {
         self.get_status() == TaskStatus::Zombie
     }
-
 }
 
 impl TaskControlBlock {
-     pub fn inner_exclusive_access(&self) -> RefMut<'_, TaskControlBlockInner> {
+    pub fn inner_exclusive_access(&self) -> RefMut<'_, TaskControlBlockInner> {
         self.inner.exclusive_access()
     }
 
@@ -113,7 +115,7 @@ impl TaskControlBlock {
             pid: pid_handle,
             kernel_stack,
             inner: unsafe {
-                UPSafeCell::new(TaskControlBlockInner{
+                UPSafeCell::new(TaskControlBlockInner {
                     task_status: TaskStatus::Ready,
                     task_cx: TaskContext::goto_trap_return(kernel_stack_top),
                     user_time: 0,
@@ -125,7 +127,7 @@ impl TaskControlBlock {
                     program_bak: user_sp,
                     parent: None,
                     children: Vec::new(),
-                    exit_code: 0
+                    exit_code: 0,
                 })
             },
         };
@@ -135,7 +137,7 @@ impl TaskControlBlock {
             entry_point,
             user_sp,
             KERNEL_SPACE.exclusive_access().token(),
-            kernel_stack_top, 
+            kernel_stack_top,
             trap_handler as usize,
         );
 
@@ -143,18 +145,22 @@ impl TaskControlBlock {
     }
 
     pub fn exec(&self, elf_data: &[u8]) {
+        /// 解析 elf文件创建 地址空间
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
         let trap_cx_ppn = memory_set
             .translate(VirtAddr::from(TRAP_CONTEXT).into())
-            .unwrap().ppn();
+            .unwrap()
+            .ppn();
 
         // **** access inner exclusively
         let mut inner = self.inner.exclusive_access();
+        // 绑定到新创建的 memory_set
         inner.memory_set = memory_set;
         inner.trap_cx_ppn = trap_cx_ppn;
         inner.base_size = user_sp;
         let trap_cx = inner.get_trap_cx();
 
+        // 修改 trap_cx
         *trap_cx = TrapContext::app_init_context(
             entry_point,
             user_sp,
@@ -166,24 +172,33 @@ impl TaskControlBlock {
         // **** release inner automatically
     }
 
+    /// TCB 的构建过程，复制父进程的内容，并构造新的进程控制块
+    /// 1. 建立新页表
+    /// 2. 创建新的陷入上下文
+    /// 3, 创建新的应用内核栈
+    /// 4. 创建任务上下文
+    /// 5. 建立父子关系
+    /// 6. 设置 0 为 fork 返回码
     pub fn fork(self: &Arc<Self>) -> Arc<Self> {
         // --- access parent PCB exclusively
         let mut parent_inner = self.inner_exclusive_access();
-
+        // 复制一份地址空间
         let memory_set = MemorySet::from_existed_user(&parent_inner.memory_set);
+        // 分配 物理页
+        let trap_cx_ppn = memory_set
+            .translate(VirtAddr::from(TRAP_CONTEXT).into())
+            .unwrap()
+            .ppn();
 
-        let trap_cx_ppn = memory_set.translate(VirtAddr::from(TRAP_CONTEXT).into())
-            .unwrap().ppn();
-        
         let pid_handle = pid_alloc();
         let kernel_stack = KernelStack::new(&pid_handle);
         let kernel_stack_top = kernel_stack.get_top();
 
-        let task_control_block = Arc::new(TaskControlBlock{
+        let task_control_block = Arc::new(TaskControlBlock {
             pid: pid_handle,
             kernel_stack,
             inner: unsafe {
-                UPSafeCell::new(TaskControlBlockInner{
+                UPSafeCell::new(TaskControlBlockInner {
                     task_status: TaskStatus::Ready,
                     task_cx: TaskContext::goto_trap_return(kernel_stack_top),
                     user_time: 0,
@@ -211,5 +226,4 @@ impl TaskControlBlock {
         // ---- release parent PCB automatically
         // **** release children PCB automatically
     }
-
 }

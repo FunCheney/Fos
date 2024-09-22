@@ -1,11 +1,14 @@
 //! App management syscalls
 
 use crate::{
-    loader::get_app_data_by_name, 
-    mm::{translated_refmut, translated_str}, 
-    task::{add_task, current_task, current_user_token, 
-        exit_current_and_run_next, suspend_current_and_run_next}, 
-    timer::get_time_ms};
+    loader::get_app_data_by_name,
+    mm::{translated_refmut, translated_str},
+    task::{
+        add_task, current_task, current_user_token, exit_current_and_run_next,
+        suspend_current_and_run_next,
+    },
+    timer::get_time_ms,
+};
 use alloc::sync::Arc;
 
 /// task exits and submit an exit code
@@ -25,7 +28,7 @@ pub fn sys_get_time() -> isize {
 }
 
 pub fn sys_getpid() -> isize {
-   current_task().unwrap().pid.0 as isize 
+    current_task().unwrap().pid.0 as isize
 }
 
 pub fn sys_fork() -> isize {
@@ -42,11 +45,11 @@ pub fn sys_exec(_path: *const u8) -> isize {
     let token = current_user_token();
     let _path = translated_str(token, _path);
 
-    if let Some(data) =get_app_data_by_name(_path.as_str()) {
+    if let Some(data) = get_app_data_by_name(_path.as_str()) {
         let task = current_task().unwrap();
         task.exec(data);
         0
-    }else {
+    } else {
         -1
     }
 }
@@ -56,13 +59,15 @@ pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
 
     let mut inner = task.inner_exclusive_access();
 
-    if !inner.children.iter()
+    if !inner
+        .children
+        .iter()
         .any(|p| pid == -1 || pid as usize == p.get_pid())
     {
         return -1;
     }
 
-    let pair = inner.children.iter().enumerate().find(|(_, p)|{
+    let pair = inner.children.iter().enumerate().find(|(_, p)| {
         p.inner_exclusive_access().is_zombie() && (pid == -1 || pid as usize == p.get_pid())
     });
 
@@ -75,11 +80,7 @@ pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
         *translated_refmut(inner.memory_set.token(), exit_code_ptr) = exit_code;
 
         found_pid as isize
-    }else {
+    } else {
         -2
     }
 }
-
-
-
-

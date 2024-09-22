@@ -1,7 +1,6 @@
 //! os/src/loader.rs
 use alloc::vec::Vec;
 /// 实现应用的加载
-
 use lazy_static::*;
 
 /// 获取链接到内核应用数目
@@ -36,7 +35,7 @@ pub fn get_app_data(app_id: usize) -> &'static [u8] {
 lazy_static! {
     static ref APP_NAMES: Vec<&'static str> = {
         let num_app = get_num_app();
-        extern "C"{
+        extern "C" {
             fn _app_names();
         }
 
@@ -62,12 +61,14 @@ lazy_static! {
 
 pub fn get_app_data_by_name(name: &str) -> Option<&'static [u8]> {
     let app_num = get_num_app();
-    (0..app_num).find(|&i| APP_NAMES[i] == name).map(|i| get_app_data(i))
+    (0..app_num)
+        .find(|&i| APP_NAMES[i] == name)
+        .map(|i| get_app_data(i))
 }
 
 pub fn list_apps() {
     println!("=====APPS=====");
-    for app in APP_NAMES.iter()  {
+    for app in APP_NAMES.iter() {
         println!("{}", app);
     }
 

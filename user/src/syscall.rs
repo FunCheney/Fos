@@ -4,20 +4,19 @@ pub const SYSCALL_READ: usize = 63;
 pub const SYSCALL_WRITE: usize = 64;
 pub const SYSCALL_EXIT: usize = 93;
 pub const SYSCALL_YIELD: usize = 124;
-pub const SYSCALL_GET_TIME: usize = 169; 
+pub const SYSCALL_GET_TIME: usize = 169;
 pub const SYSCALL_TASK_INFO: usize = 410;
 pub const SYSCALL_FORK: usize = 220;
 pub const SYSCALL_GETPID: usize = 172;
 pub const SYSCALL_EXEC: usize = 221;
 pub const SYSCALL_WAITPID: usize = 260;
 
-
 /// 功能: 将系统调用封装成 syscall 函数
-/// 参数: 'id' 系统调用id 
+/// 参数: 'id' 系统调用id
 ///       'args' 三个参数
 fn syscall(id: usize, args: [usize; 3]) -> isize {
     let mut ret: isize;
-    unsafe{
+    unsafe {
         // 使用 asm 嵌入 ecall 指令来触发系统调用
         // asm 宏可以获取上下文中的参数信息，并允许嵌入的汇编代码对这些参数
         // 进行操作。由于编译器的能力不足以判断汇编代码的安全性，所以需要包裹在
@@ -25,7 +24,7 @@ fn syscall(id: usize, args: [usize; 3]) -> isize {
         asm!(
             //汇编 代码 应用程序通过 ecall 调用操作系统提供的接口
             "ecall",
-            // a0 比较特殊，同时用作输入/输出 
+            // a0 比较特殊，同时用作输入/输出
             inlateout("x10") args[0] => ret,
             // 将输入参数 args[1] 绑定到 ecall 的输入寄存器 x11 中，即 a1 寄存器中
             // 编译器自动插入相关指令，并保证在 ecall 执行前寄存器 a1 的值与 args[1] 相同
@@ -47,12 +46,11 @@ fn syscall(id: usize, args: [usize; 3]) -> isize {
 /// 返回值： 返回成功写入的长度
 /// syscall ID: 64
 pub fn sys_write(fd: usize, buffer: &[u8]) -> isize {
-    syscall(SYSCALL_WRITE, [fd,buffer.as_ptr() as usize, buffer.len()])
+    syscall(SYSCALL_WRITE, [fd, buffer.as_ptr() as usize, buffer.len()])
 }
 
-
 /// 功能: 退出应用程序并将返回值告知批处理系统
-/// 参数: 'exit_code' 表示应用程序的返回值 
+/// 参数: 'exit_code' 表示应用程序的返回值
 /// 返回值: 该系统调用不应该返回
 /// syscall ID: 93
 pub fn sys_exit(exit_code: i32) -> isize {
@@ -63,14 +61,14 @@ pub fn sys_exit(exit_code: i32) -> isize {
 /// 返回值: 总是返回 0
 /// syscall ID: 124
 pub fn sys_yield() -> isize {
-    syscall(SYSCALL_YIELD, [0,0,0])
+    syscall(SYSCALL_YIELD, [0, 0, 0])
 }
 
 /// 功能: 获取系统中的的当前时间
 /// 返回值: 是否执行成功，成功则返回 0
 /// syscall ID: 169
-pub fn sys_get_time() -> isize{
-    syscall(SYSCALL_GET_TIME, [0,0,0])
+pub fn sys_get_time() -> isize {
+    syscall(SYSCALL_GET_TIME, [0, 0, 0])
 }
 
 #[allow(unused)]
@@ -86,7 +84,7 @@ pub fn sys_fork() -> isize {
 }
 
 /// 功能: 当前
-pub fn sys_getpid() -> isize{
+pub fn sys_getpid() -> isize {
     syscall(SYSCALL_GETPID, [0, 0, 0])
 }
 
@@ -108,18 +106,13 @@ pub fn sys_waitpid(pid: isize, exit_code: *mut i32) -> isize {
     syscall(SYSCALL_WAITPID, [pid as usize, exit_code as usize, 0])
 }
 
-
 /// 功能: 从文件中读出一段内容到缓冲区
 /// 参数: fd 带读取文件的文件描述符，buffer 切片给出的缓冲区
 /// 返回值: 如果出现错误返回 -1, 否则返回实际读到的字节数
 /// syscall id: 63
-pub fn sys_read(fd: usize, buffer: &mut [u8]) ->isize {
+pub fn sys_read(fd: usize, buffer: &mut [u8]) -> isize {
     syscall(
-        SYSCALL_READ, 
+        SYSCALL_READ,
         [fd, buffer.as_mut_ptr() as usize, buffer.len()],
     )
-
 }
-
-
-
