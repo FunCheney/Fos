@@ -25,6 +25,7 @@ impl Processor {
         &mut self.idle_task_cx as *mut _
     }
 
+    // 获取当前进程 TCB
     pub fn take_current(&mut self) -> Option<Arc<TaskControlBlock>> {
         self.current.take()
     }
@@ -34,7 +35,7 @@ impl Processor {
     }
 }
 
-/// 初始化一个 PROCESSOR 第一此调用的时候会被加载
+// 初始化一个 PROCESSOR 第一此调用的时候会被加载
 lazy_static! {
     pub static ref PROCESSOR: UPSafeCell<Processor> = unsafe { UPSafeCell::new(Processor::new()) };
 }
@@ -42,6 +43,7 @@ lazy_static! {
 pub fn run_tasks() {
     // 循环
     loop {
+        // 在这里完成 PROCESSOR 的 初始化
         let mut processor = PROCESSOR.exclusive_access();
         // 选择一个用来切换的进程
         if let Some(task) = fetch_task() {
