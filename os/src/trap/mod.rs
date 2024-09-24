@@ -48,6 +48,7 @@ fn set_user_trap_entry() {
 
 pub fn enable_timer_interrupt() {
     unsafe {
+        // 调用 sie 设置时间中断
         sie::set_stimer();
     }
 }
