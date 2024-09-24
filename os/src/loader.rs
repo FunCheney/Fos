@@ -34,6 +34,7 @@ pub fn get_app_data(app_id: usize) -> &'static [u8] {
 
 lazy_static! {
     static ref APP_NAMES: Vec<&'static str> = {
+        // 获取 app 数量
         let num_app = get_num_app();
         extern "C" {
             fn _app_names();
@@ -44,6 +45,7 @@ lazy_static! {
         unsafe {
             for _ in 0..num_app {
                 let mut end = start;
+                // 读到 ‘\0’ 表示结束本次
                 while end.read_volatile() != '\0' as u8 {
                     end = end.add(1);
                 }
@@ -68,6 +70,7 @@ pub fn get_app_data_by_name(name: &str) -> Option<&'static [u8]> {
 
 pub fn list_apps() {
     println!("=====APPS=====");
+    // 所有 appname 都保存在 APP_NAMES 中
     for app in APP_NAMES.iter() {
         println!("{}", app);
     }
