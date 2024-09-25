@@ -46,6 +46,9 @@ pub fn run_tasks() {
         // 在这里完成 PROCESSOR 的 初始化
         let mut processor = PROCESSOR.exclusive_access();
         // 选择一个用来切换的进程
+        // 这里第一个进程是 initproc 程序，
+        // 在切换到改进程执行的时候，会做一些其他操作，具体实现
+        // user/src/bin 目录下
         if let Some(task) = fetch_task() {
             // 获取空闲的进程
             let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
