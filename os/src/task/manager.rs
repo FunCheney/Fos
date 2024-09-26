@@ -28,7 +28,7 @@ impl TaskManager {
     }
 }
 
-/// 实例化 TASK_MANAGER
+// 实例化 TASK_MANAGER
 lazy_static! {
     pub static ref TASK_MANAGER: UPSafeCell<TaskManager> =
         unsafe { UPSafeCell::new(TaskManager::new()) };

@@ -57,6 +57,7 @@ fn rust_main() -> ! {
     // 设置了 10 ms 的计时器
     timer::set_next_trigger();
     info!("[kernel| get user app...");
+    // 系统中的 app 列表
     loader::list_apps();
     // 调用 run-tasks
     info!("[kernel] run task...");

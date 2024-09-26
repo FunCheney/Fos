@@ -22,6 +22,7 @@ pub fn main() -> i32 {
     let mut line: String = String::new();
     print!(">> ");
     loop {
+        // 等待用户的输入
         let c = getchar();
         match c {
             LF | CR => {
@@ -30,7 +31,7 @@ pub fn main() -> i32 {
                     line.push('\0');
                     let pid = fork();
                     if pid == 0 {
-                        // child process
+                        // child process 子进程执行
                         if exec(line.as_str()) == -1 {
                             println!("Error when executing!");
                             return -4;
