@@ -1,5 +1,7 @@
 use core::arch::asm;
 
+pub const SYSCALL_OPEN: usize = 56;
+pub const SYSCALL_CLOSE: usize = 57;
 pub const SYSCALL_READ: usize = 63;
 pub const SYSCALL_WRITE: usize = 64;
 pub const SYSCALL_EXIT: usize = 93;
@@ -115,4 +117,21 @@ pub fn sys_read(fd: usize, buffer: &mut [u8]) -> isize {
         SYSCALL_READ,
         [fd, buffer.as_mut_ptr() as usize, buffer.len()],
     )
+}
+
+/// 功能: 打开一个文件，并返回可以访问它的文件描述符
+/// 参数: path 描述要打开的文件名（简单起见，文件系统不需要支持目录，所有文件都放在根目录下）
+/// flags: 描述打开文件的标志
+/// 返回值: 如果出现了错误则返回 -1，否则返回打开文件的文件描述符。可能的错误原因：文件不存在
+/// syscall id: 56
+pub fn sys_open(path: &str, flags: u32) -> isize {
+    syscall(SYSCALL_READ, [path.as_ptr() as usize, flags as usize, 0])
+}
+
+/// 功能: 当前进程关闭一个文件
+/// 参数: fd 表示当前文件的文件描述符
+/// 返回值: 如果是 0 成功关闭，-1 关闭失败。可能错误的原因：传入的文件描述符不是一个对应的打开文件
+/// syscall id: 57
+pub fn sys_close(fd: isize) -> isize {
+    syscall(SYSCALL_CLOSE, [fd, 0, 0])
 }

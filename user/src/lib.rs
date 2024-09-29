@@ -129,3 +129,24 @@ pub fn exec(path: &str) -> isize {
 pub fn read(fd: usize, buf: &mut [u8]) -> isize {
     sys_read(fd, buf)
 }
+
+bitflags! {
+    pub struct OpenFlags: u32 {
+        // 第 0 位，只读模式打开
+        const READONLY = 0;
+        // 0x001，只写模式打开
+        const WRONLY = 1 << 0;
+        // 第 1 位被设置，可读可写模式
+        const RDWR = 1 << 1;
+        // 第 9 位被设置，表示允许创建文件 CREATE，
+        // 找不到对应该文件的时候应该创建文件，如果该文件存在，
+        // 则将对应的文件大小归 0.
+        const CREATE = 1 << 9;
+        // 第 10 位被设置为 0，则在打开时候清空文件内容，并将文件大小归为0
+        const TRUNC = 1 << 10;
+    }
+}
+
+pub fn open(path: &str, flags: OpenFlags) -> isize {
+    sys_open(path, flags.bits)
+}
