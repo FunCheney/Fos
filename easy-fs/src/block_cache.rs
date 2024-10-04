@@ -1,6 +1,6 @@
 use crate::BLOCK_SIZE;
 use supper::BlockDevice;
-
+use alloc::collections::VecDeque;
 
 pub struct BlockCache {
     cache: [u8; BLOCK_SIZE],
@@ -67,3 +67,45 @@ impl Drop for BlockCache {
         self.sync()
     }
 }
+
+pub struct BlockCacheManager {
+    queue: VecDeque<(usize, Arc<Mutex<BlockCache>>)>,
+}
+
+impl BlockCacheManager  {
+    pub fn new() -> Self {
+        Self {
+            queue: VecDeque::new()
+        }
+    }
+
+    pub fn get_block_cache(&mut self,block_id: usize,block_device: Arc<dyn BlockDevice>) 
+    -> Arc<Mutex<BlockDevice>>{
+        if let Some(pair) = self.queue.iter()
+            .find(|pair| pair.0 == block_id){
+                Arc::clone(&pair.1)
+        }else {
+            if self.queue.len() == BLOCK_CACHE_SIZE {
+                if let Some((idx, _)) = self.queue.iter().enumerate().find(|_, pair| Arc::strong_count(&pair.1) == 1){
+                    self.queue.drain(idx..=idx);
+                }else {
+                    panic!("Run out of BlockCache");
+                }
+            }
+        }
+
+        let blockCache = Arc::new(Mutex::new(
+                BlockCache::new(block_id, Arc::clone(&block_device))
+            ));
+        self.queue.push_back((block_id, Arc::clone(&block_device)));
+        BlockCache
+    }
+}
+
+lazy_static! {
+    pub static ref BLOCK_CACHE_MANAGER: Mutex<BlockCacheManager> = Mutex::new(
+            BlockCacheManager::new()
+        );
+}
+
+
