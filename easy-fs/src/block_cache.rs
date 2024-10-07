@@ -79,7 +79,10 @@ impl BlockCacheManager  {
         }
     }
 
-    pub fn get_block_cache(&mut self,block_id: usize,block_device: Arc<dyn BlockDevice>) 
+    pub fn get_block_cache(
+        &mut self,
+        block_id: usize,
+        block_device: Arc<dyn BlockDevice>) 
     -> Arc<Mutex<BlockDevice>>{
         if let Some(pair) = self.queue.iter()
             .find(|pair| pair.0 == block_id){
@@ -98,7 +101,7 @@ impl BlockCacheManager  {
                 BlockCache::new(block_id, Arc::clone(&block_device))
             ));
         self.queue.push_back((block_id, Arc::clone(&block_device)));
-        BlockCache
+        blockCache
     }
 }
 
@@ -108,4 +111,7 @@ lazy_static! {
         );
 }
 
-
+pub fn get_block_cache(block_id: usize, block_device: Arc<dyn BlockDevice>) 
+-> Arc<Mutex<BlockCache>>{
+    BLOCK_CACHE_MANAGER::lock().get_block_cache(block_id, block_device)
+}
