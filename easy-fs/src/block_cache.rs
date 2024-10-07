@@ -1,6 +1,6 @@
 use crate::BLOCK_SIZE;
 use supper::BlockDevice;
-use alloc::collections::VecDeque;
+use alloc::{collections::VecDeque, sync::Arc};
 
 pub struct BlockCache {
     cache: [u8; BLOCK_SIZE],
