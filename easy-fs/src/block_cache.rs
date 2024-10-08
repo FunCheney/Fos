@@ -1,6 +1,8 @@
+use super::BlockDevice;
 use crate::BLOCK_SIZE;
-use supper::BlockDevice;
 use alloc::{collections::VecDeque, sync::Arc};
+use lazy_static::*;
+use spin::Mutex;
 
 pub struct BlockCache {
     cache: [u8; BLOCK_SIZE],
@@ -9,7 +11,7 @@ pub struct BlockCache {
     modified: bool,
 }
 
-impl BlockCache{
+impl BlockCache {
     pub fn new(block_id: usize, block_device: Arc<dyn BlockDevice>) -> Self {
         let mut cache = [0u8; BLOCK_SIZE];
         block_device.read_block(block_id, &mut cache);
@@ -22,26 +24,28 @@ impl BlockCache{
     }
 
     fn addr_of_offset(&self, offset: usize) -> usize {
-        self.cache[offset] as *const _as usize
+        &self.cache[offset] as *const _ as usize
     }
 
-    pub fn  get_ref<T>(&self, offset: usize) -> &T where T : Sized {
+    pub fn get_ref<T>(&self, offset: usize) -> &T
+    where
+        T: Sized,
+    {
         let type_size = core::mem::size_of::<T>();
         assert!(offset + type_size <= BLOCK_SIZE);
-        let addr = self.add_of_offset(offset);
-        unsafe {
-            &*(addr as *const T)
-        }
+        let addr = self.addr_of_offset(offset);
+        unsafe { &*(addr as *const T) }
     }
 
-    pub fn get_mut<T>(&mut self, offset: usize) -> &T where T: Sized {
+    pub fn get_mut<T>(&mut self, offset: usize) -> &T
+    where
+        T: Sized,
+    {
         let type_size = core::mem::size_of::<T>();
         assert!(offset + type_size <= BLOCK_SIZE);
         self.modified = true;
         let addr = self.addr_of_offset(offset);
-        unsafe {
-            &*(addr as *mut T)
-        }
+        unsafe { &*(addr as *mut T) }
     }
 
     pub fn sync(&mut self) {
@@ -52,14 +56,12 @@ impl BlockCache{
     }
 
     pub fn read<T, V>(&self, offset: usize, f: impl FnOnce(&T) -> V) -> V {
-
         f(self.get_ref(offset))
     }
 
     pub fn modify<T, V>(&mut self, offset: usize, f: impl FnOnce(&T) -> V) -> V {
         f(self.get_mut(offset))
     }
-
 }
 
 impl Drop for BlockCache {
@@ -67,51 +69,58 @@ impl Drop for BlockCache {
         self.sync()
     }
 }
-
 pub struct BlockCacheManager {
     queue: VecDeque<(usize, Arc<Mutex<BlockCache>>)>,
 }
 
-impl BlockCacheManager  {
+impl BlockCacheManager {
     pub fn new() -> Self {
         Self {
-            queue: VecDeque::new()
+            queue: VecDeque::new(),
         }
     }
 
     pub fn get_block_cache(
         &mut self,
         block_id: usize,
-        block_device: Arc<dyn BlockDevice>) 
-    -> Arc<Mutex<BlockDevice>>{
-        if let Some(pair) = self.queue.iter()
-            .find(|pair| pair.0 == block_id){
-                Arc::clone(&pair.1)
-        }else {
+        block_device: Arc<dyn BlockDevice>,
+    ) -> Arc<Mutex<BlockDevice>> {
+        if let Some(pair) = self.queue.iter().find(|pair| pair.0 == block_id) {
+            Arc::clone(&pair.1)
+        } else {
             if self.queue.len() == BLOCK_CACHE_SIZE {
-                if let Some((idx, _)) = self.queue.iter().enumerate().find(|_, pair| Arc::strong_count(&pair.1) == 1){
+                if let Some((idx, _)) = self
+                    .queue
+                    .iter()
+                    .enumerate()
+                    .find(|_, pair| Arc::strong_count(&pair.1) == 1)
+                {
                     self.queue.drain(idx..=idx);
-                }else {
+                } else {
                     panic!("Run out of BlockCache");
                 }
             }
         }
 
-        let blockCache = Arc::new(Mutex::new(
-                BlockCache::new(block_id, Arc::clone(&block_device))
-            ));
+        let blockCache = Arc::new(Mutex::new(BlockCache::new(
+            block_id,
+            Arc::clone(&block_device),
+        )));
         self.queue.push_back((block_id, Arc::clone(&block_device)));
         blockCache
     }
 }
 
 lazy_static! {
-    pub static ref BLOCK_CACHE_MANAGER: Mutex<BlockCacheManager> = Mutex::new(
-            BlockCacheManager::new()
-        );
+    pub static ref BLOCK_CACHE_MANAGER: Mutex<BlockCacheManager> =
+        Mutex::new(BlockCacheManager::new());
 }
 
-pub fn get_block_cache(block_id: usize, block_device: Arc<dyn BlockDevice>) 
--> Arc<Mutex<BlockCache>>{
-    BLOCK_CACHE_MANAGER::lock().get_block_cache(block_id, block_device)
+pub fn get_block_cache(
+    block_id: usize,
+    block_device: Arc<dyn BlockDevice>,
+) -> Arc<Mutex<BlockCache>> {
+    BLOCK_CACHE_MANAGER
+        .lock()
+        .get_block_cache(block_id, block_device)
 }
