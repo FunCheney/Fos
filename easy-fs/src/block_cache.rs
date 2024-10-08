@@ -84,7 +84,7 @@ impl BlockCacheManager {
         &mut self,
         block_id: usize,
         block_device: Arc<dyn BlockDevice>,
-    ) -> Arc<Mutex<BlockDevice>> {
+    ) -> Arc<Mutex<BlockCache>> {
         if let Some(pair) = self.queue.iter().find(|pair| pair.0 == block_id) {
             Arc::clone(&pair.1)
         } else {
