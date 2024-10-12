@@ -1,3 +1,5 @@
+use core::ffi::c_str::Bytes;
+
 use alloc::{sync::Arc, vec::Vec};
 
 use crate::{block_cache::get_block_cache, BlockDevice, BLOCK_SIZE};
@@ -11,6 +13,7 @@ const DIRECT_BOUND: usize = INODE_DIRECT_COUNT;
 
 const INODE_INDIRECT1_COUNT: usize = BLOCK_SIZE / 4;
 const INDIRECT1_BOUND: usize = DIRECT_BOUND + INODE_INDIRECT1_COUNT;
+const INODE_INDIRECT2_COUNT: usize = INODE_INDIRECT1_COUNT * INODE_INDIRECT1_COUNT;
 
 #[repr(C)]
 pub struct SupperBlock {
@@ -82,7 +85,7 @@ impl DiskInode {
         self.type_ == DiskInodeType::File
     }
 
-    pub fn get_block_id(self, inner_id: u32, block_device: &Arc<dyn BlockDevice>) -> u32 {
+    pub fn get_block_id(&self, inner_id: u32, block_device: &Arc<dyn BlockDevice>) -> u32 {
         let inner_id = inner_id as usize;
         if inner_id < INODE_DIRECT_COUNT {
             self.direct[inner_id]
@@ -113,11 +116,11 @@ impl DiskInode {
     }
 
     pub fn data_blocks(&self) -> u32 {
-        self::_data_blocks(self.size)
+        Self::_data_blocks(self.size)
     }
 
     pub fn total_blocks(size: u32) -> u32 {
-        let data_blocks = self::_data_blocks(size) as usize;
+        let data_blocks = Self::_data_blocks(size) as usize;
         let mut total = data_blocks as usize;
 
         if data_blocks > INODE_DIRECT_COUNT {
@@ -277,5 +280,125 @@ impl DiskInode {
             });
         self.indirect2 = 0;
         v
+    }
+
+    pub fn read_at(
+        &self,
+        offset: usize,
+        buf: &mut [u8],
+        block_device: &Arc<dyn BlockDevice>,
+    ) -> usize {
+        let mut start = offset;
+        let end = (offset + buf.len()).min(self.size as usize);
+        if start >= end {
+            return 0;
+        }
+        let mut start_block = start / BLOCK_SIZE;
+        let mut read_size = 0usize;
+        loop {
+            let mut end_current_block = (start / BLOCK_SIZE + 1) * BLOCK_SIZE;
+            end_current_block = end_current_block.min(end);
+            let block_read_size = end_current_block - start;
+            let dst = &mut buf[read_size..read_size + block_read_size];
+            get_block_cache(
+                self.get_block_id(start_block as u32, block_device) as usize,
+                Arc::clone(block_device),
+            )
+            .lock()
+            .read(0, |data_block: &DataBlock| {
+                let src = &data_block[start % BLOCK_SIZE..start % BLOCK_SIZE + block_read_size];
+                dst.copy_from_slice(src);
+            });
+            read_size += block_read_size;
+            if end_current_block == end {
+                break;
+            }
+            start_block += 1;
+            start = end_current_block;
+        }
+        read_size
+    }
+
+    pub fn write_at(
+        &mut self,
+        offset: usize,
+        buf: &mut [u8],
+        block_device: &Arc<dyn BlockDevice>,
+    ) -> usize {
+        let mut start = offset;
+        let end = (offset + buf.len()).min(self.size as usize);
+        assert!(start <= end);
+        let mut start_block = start / BLOCK_SIZE;
+        let mut write_size = 0usize;
+
+        loop {
+            let mut end_current_block = (start / BLOCK_SIZE + 1) * BLOCK_SIZE;
+            end_current_block = end_current_block.min(end);
+            let block_write_size = end_current_block - start;
+            get_block_cache(
+                self.get_block_id(start_block as u32, block_device) as usize,
+                Arc::clone(block_device),
+            )
+            .lock()
+            .modify(0, |data_block: &mut DataBlock| {
+                let src = &buf[write_size..write_size + block_write_size];
+                let dst =
+                    &mut data_block[start % BLOCK_SIZE..start % BLOCK_SIZE + block_write_size];
+                dst.copy_from_slice(src);
+            });
+            write_size += block_write_size;
+            if end_current_block == end {
+                break;
+            }
+
+            start_block += 1;
+            start = end_current_block;
+        }
+
+        write_size
+    }
+}
+
+#[repr(C)]
+pub struct DirEntry {
+    name: [u8; NAME_LENGTH_LIMIT + 1],
+    innoder_number: u32,
+}
+
+pub const DIRENT_SZ: usize = 32;
+
+impl DirEntry {
+    pub fn empty() -> Self {
+        Self {
+            name: [0; NAME_LENGTH_LIMIT + 1],
+            innoder_number: 0,
+        }
+    }
+
+    pub fn new(name: &str, innoder_number: u32) -> Self {
+        let mut bytes = [0u8; NAME_LENGTH_LIMIT + 1];
+        bytes[..name.len()].copy_from_slice(name.as_bytes());
+        Self {
+            name: bytes,
+            innoder_number,
+        }
+    }
+
+    /// Serialize into bytes
+    pub fn as_bytes(&self) -> &[u8] {
+        unsafe { core::slice::from_raw_parts(self as *const _ as usize as *const u8, DIRENT_SZ) }
+    }
+    /// Serialize into mutable bytes
+    pub fn as_bytes_mut(&mut self) -> &mut [u8] {
+        unsafe { core::slice::from_raw_parts_mut(self as *mut _ as usize as *mut u8, DIRENT_SZ) }
+    }
+    /// Get name of the entry
+    pub fn name(&self) -> &str {
+        let len = (0usize..).find(|i| self.name[*i] == 0).unwrap();
+        core::str::from_utf8(&self.name[..len]).unwrap()
+    }
+    /// Get inode number of the entry
+    pub fn inode_number(&self) -> u32 {
+        self.inode_number
     }
 }
