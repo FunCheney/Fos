@@ -5,6 +5,7 @@ extern crate alloc;
 mod bitmap;
 mod block_cache;
 mod block_dev;
+mod efs;
 mod layout;
 
 pub use block_dev::BlockDevice;

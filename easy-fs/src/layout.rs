@@ -362,7 +362,7 @@ impl DiskInode {
 #[repr(C)]
 pub struct DirEntry {
     name: [u8; NAME_LENGTH_LIMIT + 1],
-    innoder_number: u32,
+    innode_number: u32,
 }
 
 pub const DIRENT_SZ: usize = 32;
@@ -372,16 +372,16 @@ impl DirEntry {
     pub fn empty() -> Self {
         Self {
             name: [0; NAME_LENGTH_LIMIT + 1],
-            innoder_number: 0,
+            innode_number: 0,
         }
     }
 
-    pub fn new(name: &str, innoder_number: u32) -> Self {
+    pub fn new(name: &str, innoder_numbe: u32) -> Self {
         let mut bytes = [0u8; NAME_LENGTH_LIMIT + 1];
         bytes[..name.len()].copy_from_slice(name.as_bytes());
         Self {
             name: bytes,
-            innoder_number,
+            innode_number,
         }
     }
 
