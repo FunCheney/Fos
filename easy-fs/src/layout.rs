@@ -366,6 +366,7 @@ pub struct DirEntry {
 }
 
 pub const DIRENT_SZ: usize = 32;
+const NAME_LENGTH_LIMIT: usize = 27;
 
 impl DirEntry {
     pub fn empty() -> Self {
