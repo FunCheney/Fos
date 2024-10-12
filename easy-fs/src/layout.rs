@@ -1,5 +1,3 @@
-use core::ffi::c_str::Bytes;
-
 use alloc::{sync::Arc, vec::Vec};
 
 use crate::{block_cache::get_block_cache, BlockDevice, BLOCK_SIZE};
@@ -376,7 +374,7 @@ impl DirEntry {
         }
     }
 
-    pub fn new(name: &str, innoder_numbe: u32) -> Self {
+    pub fn new(name: &str, innode_number: u32) -> Self {
         let mut bytes = [0u8; NAME_LENGTH_LIMIT + 1];
         bytes[..name.len()].copy_from_slice(name.as_bytes());
         Self {
@@ -400,6 +398,6 @@ impl DirEntry {
     }
     /// Get inode number of the entry
     pub fn inode_number(&self) -> u32 {
-        self.inode_number
+        self.innode_number
     }
 }
