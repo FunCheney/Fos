@@ -8,10 +8,10 @@ mod block_dev;
 mod efs;
 mod layout;
 mod vfs;
-/// use a block size
-pub const BLOCK_SIZE: usize = 512;
-use bitmap::BitMap;
-use block_cache::{block_cache_sync_call, get_block_cache};
+/// Use a block size of 512 bytes
+pub const BLOCK_SZ: usize = 512;
+use bitmap::Bitmap;
+use block_cache::{block_cache_sync_all, get_block_cache};
 pub use block_dev::BlockDevice;
 pub use efs::EasyFileSystem;
 use layout::*;
