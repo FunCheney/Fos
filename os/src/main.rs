@@ -15,6 +15,7 @@ mod board;
 mod console;
 mod config;
 // pub mod batch;
+pub mod fs;
 mod lang_items;
 mod loader;
 mod logging;
