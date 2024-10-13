@@ -320,7 +320,7 @@ impl DiskInode {
     pub fn write_at(
         &mut self,
         offset: usize,
-        buf: &mut [u8],
+        buf: &[u8],
         block_device: &Arc<dyn BlockDevice>,
     ) -> usize {
         let mut start = offset;

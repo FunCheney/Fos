@@ -1,14 +1,18 @@
 use alloc::sync::Arc;
 
 use super::{
-    block_cache_sync_call, get_block_cache, BitMap, BlockDevice, DiskInode, DiskInodeType,
+    block_cache_sync_call, get_block_cache, BitMap, BlockDevice, DiskInode, DiskInodeType, Inode,
     SupperBlock, BLOCK_SIZE,
 };
 use spin::Mutex;
 
+/// 简易文件系统
 pub struct EasyFileSystem {
+    /// read deice
     pub block_device: Arc<dyn BlockDevice>,
+    /// Inode bitmap
     pub innode_bitmap: BitMap,
+    /// data bitmap
     pub data_bitmap: BitMap,
     innode_area_start_block: u32,
     data_area_start_block: u32,
@@ -17,6 +21,7 @@ pub struct EasyFileSystem {
 type DataBlock = [u8; BLOCK_SIZE];
 
 impl EasyFileSystem {
+    /// 创建 data_block
     pub fn create(
         block_device: Arc<dyn BlockDevice>,
         total_blocks: u32,
@@ -80,6 +85,7 @@ impl EasyFileSystem {
         Arc::new(Mutex::new(efs))
     }
 
+    /// open
     pub fn open(block_device: Arc<dyn BlockDevice>) -> Arc<Mutex<Self>> {
         get_block_cache(0, Arc::clone(&block_device)).lock().read(
             0,
@@ -106,25 +112,29 @@ impl EasyFileSystem {
         )
     }
 
+    /// get inode by id
     pub fn get_disk_inode_ops(&self, inode_id: u32) -> (u32, usize) {
         let inode_size = core::mem::size_of::<DiskInode>();
         let inode_per_block = (BLOCK_SIZE / inode_size) as u32;
         let block_id = self.innode_area_start_block + inode_id / inode_per_block;
         (block_id, (inode_id % inode_per_block) as usize * inode_size)
     }
-
-    pub fn get_date_block_id(&self, data_block_id: u32) -> u32 {
+    /// get data by data_block_id
+    pub fn get_data_block_id(&self, data_block_id: u32) -> u32 {
         self.data_area_start_block + data_block_id
     }
 
+    /// alloc new inode
     pub fn alloc_inode(&mut self) -> u32 {
         self.innode_bitmap.alloc(&self.block_device).unwrap() as u32
     }
 
+    /// alloc_data
     pub fn alloc_data(&mut self) -> u32 {
         self.data_bitmap.alloc(&self.block_device).unwrap() as u32 + self.data_area_start_block
     }
 
+    /// dealloc_data
     pub fn dealloc_data(&mut self, block_id: u32) {
         get_block_cache(block_id as usize, Arc::clone(&self.block_device))
             .lock()
@@ -138,5 +148,14 @@ impl EasyFileSystem {
             &self.block_device,
             (block_id - self.data_area_start_block) as usize,
         );
+    }
+
+    /// root_innode
+    pub fn root_inode(efs: &Arc<Mutex<Self>>) -> Inode {
+        let block_device = Arc::clone(&efs.lock().block_device);
+
+        let (block_id, block_offset) = efs.lock().get_disk_inode_ops(0);
+
+        Inode::new(block_id, block_offset, Arc::clone(efs), block_device)
     }
 }
