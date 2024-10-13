@@ -45,7 +45,7 @@ impl Inode {
     fn find_inode_id(&self, name: &str, disk_inode: &DiskInode) -> Option<u32> {
         assert!(disk_inode.is_dir());
         let file_count = (disk_inode.is_dir() as usize) / DIRENT_SZ;
-
+        assert!(file_count > 0);
         let mut dirent = DirEntry::empty();
         for i in 0..file_count {
             assert_eq!(
@@ -147,7 +147,7 @@ impl Inode {
     }
 
     /// write_at
-    pub fn write_at(&self, offset: usize, buf: &mut [u8]) -> usize {
+    pub fn write_at(&self, offset: usize, buf: &[u8]) -> usize {
         let mut fs = self.fs.lock();
         let size = self.modify_disk_node(|disk_inode| {
             self.increase_size((offset + buf.len()) as u32, disk_inode, &mut fs);

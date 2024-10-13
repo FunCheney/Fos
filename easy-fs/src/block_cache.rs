@@ -1,19 +1,24 @@
-use super::BlockDevice;
-use crate::BLOCK_SIZE;
-use alloc::{collections::VecDeque, sync::Arc};
+use super::{BlockDevice, BLOCK_SZ};
+use alloc::collections::VecDeque;
+use alloc::sync::Arc;
 use lazy_static::*;
 use spin::Mutex;
-
+/// Cached block inside memory
 pub struct BlockCache {
-    cache: [u8; BLOCK_SIZE],
+    /// cached block data
+    cache: [u8; BLOCK_SZ],
+    /// underlying block id
     block_id: usize,
+    /// underlying block device
     block_device: Arc<dyn BlockDevice>,
+    /// whether the block is dirty
     modified: bool,
 }
 
 impl BlockCache {
+    /// Load a new BlockCache from disk.
     pub fn new(block_id: usize, block_device: Arc<dyn BlockDevice>) -> Self {
-        let mut cache = [0u8; BLOCK_SIZE];
+        let mut cache = [0u8; BLOCK_SZ];
         block_device.read_block(block_id, &mut cache);
         Self {
             cache,
@@ -22,7 +27,7 @@ impl BlockCache {
             modified: false,
         }
     }
-
+    /// Get the address of an offset inside the cached block data
     fn addr_of_offset(&self, offset: usize) -> usize {
         &self.cache[offset] as *const _ as usize
     }
@@ -32,7 +37,7 @@ impl BlockCache {
         T: Sized,
     {
         let type_size = core::mem::size_of::<T>();
-        assert!(offset + type_size <= BLOCK_SIZE);
+        assert!(offset + type_size <= BLOCK_SZ);
         let addr = self.addr_of_offset(offset);
         unsafe { &*(addr as *const T) }
     }
@@ -42,17 +47,10 @@ impl BlockCache {
         T: Sized,
     {
         let type_size = core::mem::size_of::<T>();
-        assert!(offset + type_size <= BLOCK_SIZE);
+        assert!(offset + type_size <= BLOCK_SZ);
         self.modified = true;
         let addr = self.addr_of_offset(offset);
         unsafe { &mut *(addr as *mut T) }
-    }
-
-    pub fn sync(&mut self) {
-        if self.modified {
-            self.modified = false;
-            self.block_device.write_block(self.block_id, &self.cache);
-        }
     }
 
     pub fn read<T, V>(&self, offset: usize, f: impl FnOnce(&T) -> V) -> V {
@@ -62,6 +60,13 @@ impl BlockCache {
     pub fn modify<T, V>(&mut self, offset: usize, f: impl FnOnce(&mut T) -> V) -> V {
         f(self.get_mut(offset))
     }
+
+    pub fn sync(&mut self) {
+        if self.modified {
+            self.modified = false;
+            self.block_device.write_block(self.block_id, &self.cache);
+        }
+    }
 }
 
 impl Drop for BlockCache {
@@ -69,8 +74,8 @@ impl Drop for BlockCache {
         self.sync()
     }
 }
-
-const BLOCK_CAHE_SIZE: usize = 16;
+/// Use a block cache of 16 blocks
+const BLOCK_CACHE_SIZE: usize = 16;
 
 pub struct BlockCacheManager {
     queue: VecDeque<(usize, Arc<Mutex<BlockCache>>)>,
@@ -91,7 +96,9 @@ impl BlockCacheManager {
         if let Some(pair) = self.queue.iter().find(|pair| pair.0 == block_id) {
             Arc::clone(&pair.1)
         } else {
-            if self.queue.len() == BLOCK_CAHE_SIZE {
+            // substitute
+            if self.queue.len() == BLOCK_CACHE_SIZE {
+                // from front to tail
                 if let Some((idx, _)) = self
                     .queue
                     .iter()
@@ -100,10 +107,10 @@ impl BlockCacheManager {
                 {
                     self.queue.drain(idx..=idx);
                 } else {
-                    panic!("Run out of BlockCache");
+                    panic!("Run out of BlockCache!");
                 }
             }
-
+            // load block into mem and push back
             let block_cache = Arc::new(Mutex::new(BlockCache::new(
                 block_id,
                 Arc::clone(&block_device),
@@ -115,10 +122,11 @@ impl BlockCacheManager {
 }
 
 lazy_static! {
+    /// The global block cache manager
     pub static ref BLOCK_CACHE_MANAGER: Mutex<BlockCacheManager> =
         Mutex::new(BlockCacheManager::new());
 }
-
+/// Get the block cache corresponding to the given block id and block device
 pub fn get_block_cache(
     block_id: usize,
     block_device: Arc<dyn BlockDevice>,
@@ -127,8 +135,8 @@ pub fn get_block_cache(
         .lock()
         .get_block_cache(block_id, block_device)
 }
-
-pub fn block_cache_sync_call() {
+/// Sync all block cache to block device
+pub fn block_cache_sync_all() {
     let manager = BLOCK_CACHE_MANAGER.lock();
     for (_, cache) in manager.queue.iter() {
         cache.lock().sync();

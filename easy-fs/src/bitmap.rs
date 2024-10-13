@@ -12,6 +12,13 @@ pub struct BitMap {
     blocks: usize,
 }
 
+/// decomposition
+pub fn decomposition(mut bit: usize) -> (usize, usize, usize) {
+    let block_pos = bit / BLOCKS_BITS;
+    bit %= BLOCKS_BITS;
+    (block_pos, bit / 64, bit % 64)
+}
+
 impl BitMap {
     pub fn new(start_block_id: usize, blocks: usize) -> Self {
         Self {
@@ -61,10 +68,4 @@ impl BitMap {
     pub fn maxmum(&self) -> usize {
         self.blocks * BLOCKS_BITS
     }
-}
-
-pub fn decomposition(mut bit: usize) -> (usize, usize, usize) {
-    let block_pos = bit / BLOCKS_BITS;
-    bit = bit % BLOCKS_BITS;
-    (block_pos, bit / 64, bit % 64)
 }

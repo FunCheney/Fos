@@ -1,11 +1,10 @@
-use alloc::{sync::Arc, vec::Vec};
-
 use crate::{block_cache::get_block_cache, BlockDevice, BLOCK_SIZE};
+use alloc::{sync::Arc, vec::Vec};
+use core::fmt::{Debug, Formatter, Result};
 
 /// Magic number for sanity check
 const EFS_MAGIC: u32 = 0x3b800001;
 const INODE_DIRECT_COUNT: usize = 28;
-
 /// The upper bound of direct inode index
 const DIRECT_BOUND: usize = INODE_DIRECT_COUNT;
 
@@ -14,22 +13,34 @@ const INDIRECT1_BOUND: usize = DIRECT_BOUND + INODE_INDIRECT1_COUNT;
 const INODE_INDIRECT2_COUNT: usize = INODE_INDIRECT1_COUNT * INODE_INDIRECT1_COUNT;
 
 #[repr(C)]
-pub struct SupperBlock {
+pub struct SuperBlock {
     magic: u32,
     pub total_blocks: u32,
     pub inode_bitmap_blocks: u32,
     pub inode_area_blocks: u32,
-    pub data_bit_map_blocks: u32,
+    pub data_bitmap_blocks: u32,
     pub data_area_blocks: u32,
 }
 
-impl SupperBlock {
+impl Debug for SuperBlock {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        f.debug_struct("SuperBlock")
+            .field("total_blocks", &self.total_blocks)
+            .field("inode_bitmap_blocks", &self.inode_bitmap_blocks)
+            .field("inode_area_blocks", &self.inode_area_blocks)
+            .field("data_bitmap_blocks", &self.data_bitmap_blocks)
+            .field("data_area_blocks", &self.data_area_blocks)
+            .finish()
+    }
+}
+
+impl SuperBlock {
     pub fn initialize(
         &mut self,
         total_blocks: u32,
         inode_bitmap_blocks: u32,
         inode_area_blocks: u32,
-        data_bit_map_blocks: u32,
+        data_bitmap_blocks: u32,
         data_area_blocks: u32,
     ) {
         *self = Self {
@@ -37,7 +48,7 @@ impl SupperBlock {
             total_blocks,
             inode_bitmap_blocks,
             inode_area_blocks,
-            data_bit_map_blocks,
+            data_bitmap_blocks,
             data_area_blocks,
         }
     }
