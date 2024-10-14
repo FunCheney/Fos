@@ -152,10 +152,13 @@ impl PhysAddr {
         self.page_offset() == 0
     }
 
-    pub fn get_mut<T>(&self)-> &'static mut T {
-        unsafe {
-            (self.0 as *mut T).as_mut().unwrap()
-        }
+    pub fn get_mut<T>(&self) -> &'static mut T {
+        unsafe { (self.0 as *mut T).as_mut().unwrap() }
+    }
+
+    ///Get reference to `PhysAddr` value
+    pub fn get_ref<T>(&self) -> &'static T {
+        unsafe { (self.0 as *const T).as_ref().unwrap() }
     }
 }
 impl From<PhysAddr> for PhysPageNum {
@@ -176,7 +179,7 @@ impl VirtPageNum {
     // 取出虚拟页号的三级页索引，并按照从高到底的顺序返回
     // 39 - 30 为 一级 索引页
     // 30 - 21 为 二级 索引页
-    // 21 - 12 为 三级 索引页 
+    // 21 - 12 为 三级 索引页
     pub fn indexes(&self) -> [usize; 3] {
         let mut vpn = self.0;
         let mut idx = [0usize; 3];
@@ -218,6 +221,12 @@ pub trait StepByOne {
     fn step(&mut self);
 }
 impl StepByOne for VirtPageNum {
+    fn step(&mut self) {
+        self.0 += 1;
+    }
+}
+
+impl StepByOne for PhysPageNum {
     fn step(&mut self) {
         self.0 += 1;
     }

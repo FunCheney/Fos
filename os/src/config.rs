@@ -21,3 +21,5 @@ pub const TRAMPOLINE: usize = usize::MAX - PAGE_SIZE + 1;
 pub const TRAP_CONTEXT: usize = TRAMPOLINE - PAGE_SIZE;
 
 pub use crate::board::CLOCK_FREQ;
+#[allow(unused)]
+pub use crate::board::MMIO;

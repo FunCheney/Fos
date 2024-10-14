@@ -36,6 +36,11 @@ lazy_static! {
         Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
 }
 
+///Get kernelspace root ppn
+pub fn kernel_token() -> usize {
+    KERNEL_SPACE.exclusive_access().token()
+}
+
 /// memory set structure, controls virtual-memory space
 /// 地址空间：一些列有关联的不一定连续的逻辑段
 /// 这种关联一般是指这些逻辑段组成的虚拟内存空间与一个运行的程序绑定
