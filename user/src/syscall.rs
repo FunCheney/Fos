@@ -132,6 +132,6 @@ pub fn sys_open(path: &str, flags: u32) -> isize {
 /// 参数: fd 表示当前文件的文件描述符
 /// 返回值: 如果是 0 成功关闭，-1 关闭失败。可能错误的原因：传入的文件描述符不是一个对应的打开文件
 /// syscall id: 57
-pub fn sys_close(fd: isize) -> isize {
+pub fn sys_close(fd: usize) -> isize {
     syscall(SYSCALL_CLOSE, [fd, 0, 0])
 }

@@ -8,6 +8,8 @@ pub mod console;
 mod lang_items;
 mod syscall;
 
+#[macro_use]
+extern crate bitflags;
 use buddy_system_allocator::LockedHeap;
 use syscall::*;
 
@@ -149,4 +151,15 @@ bitflags! {
 
 pub fn open(path: &str, flags: OpenFlags) -> isize {
     sys_open(path, flags.bits)
+}
+
+pub fn close(fd: usize) -> isize {
+    sys_close(fd)
+}
+
+pub fn sleep(period_ms: usize) {
+    let start = sys_get_time();
+    while sys_get_time() < start + period_ms as isize {
+        sys_yield();
+    }
 }

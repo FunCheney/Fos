@@ -18,7 +18,7 @@ pub fn main() -> i32 {
     write(fd, test_str.as_bytes());
     close(fd);
 
-    let fd = open(filea, OpenFlags::RDONLY);
+    let fd = open(filea, OpenFlags::READONLY);
     assert!(fd > 0);
     let fd = fd as usize;
     let mut buffer = [0u8; 100];
