@@ -33,8 +33,8 @@ impl BlockCache {
     }
 
     pub fn get_ref<T>(&self, offset: usize) -> &T
-    where
-        T: Sized,
+        where
+            T: Sized,
     {
         let type_size = core::mem::size_of::<T>();
         assert!(offset + type_size <= BLOCK_SZ);
@@ -43,8 +43,8 @@ impl BlockCache {
     }
 
     pub fn get_mut<T>(&mut self, offset: usize) -> &mut T
-    where
-        T: Sized,
+        where
+            T: Sized,
     {
         let type_size = core::mem::size_of::<T>();
         assert!(offset + type_size <= BLOCK_SZ);

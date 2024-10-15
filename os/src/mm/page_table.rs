@@ -19,7 +19,6 @@ bitflags! {
         const D = 1 << 7;
     }
 }
-
 /// 让编译器自动上线 Copy/Clone Trait
 /// 让这个类型以值语义赋值/传参时不会发生所有权转转移，而是拷贝一份新的副本。
 /// PageTable 是 usize 的一层简单的封装
@@ -109,7 +108,6 @@ impl PageTable {
         let idxs = vpn.indexes();
         // 当前的物理页号
         let mut ppn = self.root_ppn;
-
         let mut result: Option<&mut PageTableEntry> = None;
         for (i, idx) in idxs.iter().enumerate() {
             // 取出当前节点的页表项数组
@@ -164,10 +162,12 @@ impl PageTable {
         *pte = PageTableEntry::empty();
     }
 
+    /// Translate `VirtPageNum` to `PageTableEntry`
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.find_pte(vpn).map(|pte| *pte)
     }
 
+    /// Translate `VirtAddr` to `PhysAddr`
     pub fn translate_va(&self, va: VirtAddr) -> Option<PhysAddr> {
         self.find_pte(va.clone().floor()).map(|pte| {
             let aligned_pa: PhysAddr = pte.ppn().into();
@@ -223,10 +223,9 @@ pub fn translated_str(token: usize, ptr: *const u8) -> String {
             .get_mut());
         if ch == 0 {
             break;
-        } else {
-            string.push(ch as char);
-            va += 1;
         }
+        string.push(ch as char);
+        va += 1;
     }
     string
 }
@@ -252,6 +251,7 @@ pub fn translated_refmut<T>(token: usize, ptr: *mut T) -> &'static mut T {
 
 /// UserBuffer
 pub struct UserBuffer {
+    ///U8 vec
     pub buffers: Vec<&'static mut [u8]>,
 }
 
@@ -272,7 +272,6 @@ impl UserBuffer {
 
 impl IntoIterator for UserBuffer {
     type Item = *mut u8;
-
     type IntoIter = UserBufferIterator;
     fn into_iter(self) -> Self::IntoIter {
         UserBufferIterator {
@@ -292,17 +291,16 @@ pub struct UserBufferIterator {
 impl Iterator for UserBufferIterator {
     type Item = *mut u8;
     fn next(&mut self) -> Option<Self::Item> {
-        if self.current_buffer > self.buffers.len() {
+        if self.current_buffer >= self.buffers.len() {
             None
         } else {
             let r = &mut self.buffers[self.current_buffer][self.current_idx] as *mut _;
-            if self.current_idx + 1 == self.buffers[self.current_idx].len() {
+            if self.current_idx + 1 == self.buffers[self.current_buffer].len() {
                 self.current_idx = 0;
                 self.current_buffer += 1;
             } else {
                 self.current_idx += 1;
             }
-
             Some(r)
         }
     }
