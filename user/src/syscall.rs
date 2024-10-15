@@ -125,7 +125,7 @@ pub fn sys_read(fd: usize, buffer: &mut [u8]) -> isize {
 /// 返回值: 如果出现了错误则返回 -1，否则返回打开文件的文件描述符。可能的错误原因：文件不存在
 /// syscall id: 56
 pub fn sys_open(path: &str, flags: u32) -> isize {
-    syscall(SYSCALL_READ, [path.as_ptr() as usize, flags as usize, 0])
+    syscall(SYSCALL_OPEN, [path.as_ptr() as usize, flags as usize, 0])
 }
 
 /// 功能: 当前进程关闭一个文件
