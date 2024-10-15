@@ -1,3 +1,6 @@
+use std::fmt::Debug;
+use std::mem::{size_of_val, transmute};
+
 #[test]
 fn test_01() {
 
@@ -15,5 +18,23 @@ fn test_02() {
 
     println!("addr of  a: {:p}, len: {}, capacity: {}, size: {}",
              &a, a.len(), a.capacity(), std::mem::size_of_val(&a));
+
+}
+
+#[test]
+fn test_03() {
+    let v = vec![1,2,3];
+    let a: &Vec<u64> = &v;
+    let b: &[u64] = &v;
+    let c: &dyn Debug = &v;
+
+    println!("a size: {}", size_of_val(&a));
+    println!("b size: {}", size_of_val(&b));
+    println!("c size: {}", size_of_val(&c));
+
+    println!("a: {}", a as *const _ as usize);
+    println!("b: {:?}", unsafe { transmute::<_, (usize, usize)>(b) });
+    println!("c: {:?}", unsafe { transmute::<_, (usize, usize)>(c) });
+
 
 }
