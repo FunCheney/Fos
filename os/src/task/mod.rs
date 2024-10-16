@@ -9,7 +9,7 @@ mod switch;
 #[allow(clippy::rodule_inception)]
 mod task;
 
-use crate::loader::get_app_data_by_name;
+use crate::fs::{open_file, OpenFlags};
 use crate::sbi::shutdown;
 use alloc::sync::Arc;
 pub use context::TaskContext;
@@ -20,7 +20,6 @@ pub use processor::{
 };
 use switch::__switch;
 use task::{TaskControlBlock, TaskStatus};
-use crate::fs::{open_file, OpenFlags};
 
 pub fn suspend_current_and_run_next() {
     let task = take_current_task().unwrap();

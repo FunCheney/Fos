@@ -1,7 +1,7 @@
 //! App management syscalls
 
+use crate::fs::{open_file, OpenFlags};
 use crate::{
-    loader::get_app_data_by_name,
     mm::{translated_refmut, translated_str},
     task::{
         add_task, current_task, current_user_token, exit_current_and_run_next,
@@ -10,7 +10,6 @@ use crate::{
     timer::get_time_ms,
 };
 use alloc::sync::Arc;
-use crate::fs::{open_file, OpenFlags};
 
 /// task exits and submit an exit code
 #[allow(unused)]
