@@ -81,19 +81,15 @@ impl TaskControlBlockInner {
     pub fn get_trap_cx(&self) -> &'static mut TrapContext {
         self.trap_cx_ppn.get_mut()
     }
-
     pub fn get_user_token(&self) -> usize {
         self.memory_set.token()
     }
-
     fn get_status(&self) -> TaskStatus {
         self.task_status
     }
-
     pub fn is_zombie(&self) -> bool {
         self.get_status() == TaskStatus::Zombie
     }
-
     pub fn alloc_fd(&mut self) -> usize {
         if let Some(fd) = (0..self.fd_table.len()).find(|fd| self.fd_table[*fd].is_none()) {
             fd
@@ -103,6 +99,7 @@ impl TaskControlBlockInner {
         }
     }
 }
+
 
 impl TaskControlBlock {
     pub fn inner_exclusive_access(&self) -> RefMut<'_, TaskControlBlockInner> {
@@ -144,9 +141,12 @@ impl TaskControlBlock {
                     children: Vec::new(),
                     exit_code: 0,
                     fd_table: vec![
+                        // 0 -> stdin
                         Some(Arc::new(Stdin)),
+                        // 1 -> stdout
                         Some(Arc::new(Stdout)),
-                        Some(Arc::new(Stdin)),
+                        // 2 -> stderr
+                        Some(Arc::new(Stdout)),
                     ],
                 })
             },

@@ -20,6 +20,7 @@ pub use processor::{
 };
 use switch::__switch;
 use task::{TaskControlBlock, TaskStatus};
+use crate::fs::{open_file, OpenFlags};
 
 pub fn suspend_current_and_run_next() {
     let task = take_current_task().unwrap();
@@ -77,11 +78,12 @@ lazy_static! {
     /// 初始化进程管理
     /// 第一个用户进程
     /// 内嵌 initproc 在操作系统中
-    pub static ref INITPROC: Arc<TaskControlBlock> = Arc::new(
+    pub static ref INITPROC: Arc<TaskControlBlock> = Arc::new({
         // 解析 elf 文件，并建立应用的地址空间，内核栈，形成一个就绪的进程控制块
-        TaskControlBlock::new(
-            get_app_data_by_name("initproc").unwrap()
-        ));
+        let inode = open_file("initproc", OpenFlags::RDONLY).unwrap();
+        let v = inode.read_all();
+        TaskControlBlock::new(v.as_slice())
+        });
 }
 
 pub fn add_initproc() {

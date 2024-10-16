@@ -1,26 +1,33 @@
-use alloc::{sync::Arc, vec::Vec};
+//! `Arc<Inode>` -> `OSInodeInner`: In order to open files concurrently
+//! we need to wrap `Inode` into `Arc`,but `Mutex` in `Inode` prevents
+//! file systems from being accessed simultaneously
+//!
+//! `UPSafeCell<OSInodeInner>` -> `OSInode`: for static `ROOT_INODE`,we
+//! need to wrap `OSInodeInner` into `UPSafeCell`
+use super::File;
+use crate::drivers::BLOCK_DEVICE;
+use crate::mm::UserBuffer;
+use crate::sync::UPSafeCell;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
+use bitflags::*;
 use easy_fs::{EasyFileSystem, Inode};
 use lazy_static::*;
-use log::{debug, info};
-
-use crate::{drivers::BLOCK_DEVICE, sync::UPSafeCell};
-
-use super::File;
-
-use crate::mm::UserBuffer;
-
+/// A wrapper around a filesystem inode
+/// to implement File trait atop
 pub struct OSInode {
     readable: bool,
     writable: bool,
     inner: UPSafeCell<OSInodeInner>,
 }
-
+/// The OS inode inner in 'UPSafeCell'
 pub struct OSInodeInner {
     offset: usize,
     inode: Arc<Inode>,
 }
 
 impl OSInode {
+    /// Construct an OS inode from a inode
     pub fn new(readable: bool, writable: bool, inode: Arc<Inode>) -> Self {
         Self {
             readable,
@@ -28,7 +35,7 @@ impl OSInode {
             inner: unsafe { UPSafeCell::new(OSInodeInner { offset: 0, inode }) },
         }
     }
-
+    /// Read all data inside a inode into vector
     pub fn read_all(&self) -> Vec<u8> {
         let mut inner = self.inner.exclusive_access();
         let mut buffer = [0u8; 512];
@@ -38,7 +45,6 @@ impl OSInode {
             if len == 0 {
                 break;
             }
-
             inner.offset += len;
             v.extend_from_slice(&buffer[..len]);
         }
@@ -52,14 +58,13 @@ lazy_static! {
         Arc::new(EasyFileSystem::root_inode(&efs))
     };
 }
-
+/// List all files in the filesystems
 pub fn list_apps() {
-    info!("/***** APPS ******");
+    println!("/**** APPS ****");
     for app in ROOT_INODE.ls() {
-        debug!("{}--->", app);
+        println!("{}", app);
     }
-
-    info!("*************/");
+    println!("**************/");
 }
 
 bitflags! {
@@ -93,7 +98,6 @@ impl OpenFlags {
 }
 ///Open file with flags
 pub fn open_file(name: &str, flags: OpenFlags) -> Option<Arc<OSInode>> {
-    info!("open_file {}", name);
     let (readable, writable) = flags.read_write();
     if flags.contains(OpenFlags::CREATE) {
         if let Some(inode) = ROOT_INODE.find(name) {
@@ -102,7 +106,6 @@ pub fn open_file(name: &str, flags: OpenFlags) -> Option<Arc<OSInode>> {
             Some(Arc::new(OSInode::new(readable, writable, inode)))
         } else {
             // create file
-            info!("create file {}", name);
             ROOT_INODE
                 .create(name)
                 .map(|inode| Arc::new(OSInode::new(readable, writable, inode)))
