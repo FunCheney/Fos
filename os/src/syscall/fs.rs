@@ -73,3 +73,8 @@ pub fn sys_close(fd: usize) -> isize {
     inner.fd_table[fd].take();
     0
 }
+
+pub fn sys_pipe(fd: usize) -> isize {
+
+    0
+}

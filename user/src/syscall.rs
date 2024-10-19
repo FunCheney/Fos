@@ -2,6 +2,7 @@ use core::arch::asm;
 
 pub const SYSCALL_OPEN: usize = 56;
 pub const SYSCALL_CLOSE: usize = 57;
+pub const SYSCALL_PIPE: usize = 59;
 pub const SYSCALL_READ: usize = 63;
 pub const SYSCALL_WRITE: usize = 64;
 pub const SYSCALL_EXIT: usize = 93;
@@ -134,4 +135,14 @@ pub fn sys_open(path: &str, flags: u32) -> isize {
 /// syscall id: 57
 pub fn sys_close(fd: usize) -> isize {
     syscall(SYSCALL_CLOSE, [fd, 0, 0])
+}
+
+/// 功能：为当前进程打开一个管道。
+/// 参数：pipe 表示应用地址空间中的一个长度为 2 的 usize 数组的起始地址，内核需要按顺序将管道读端
+/// 和写端的文件描述符写入到数组中。
+/// 返回值：如果出现了错误则返回 -1，否则返回 0 。可能的错误原因是：传入的地址不合法。
+/// syscall ID：59
+pub fn sys_pipe(pipe: &mut [usize]) -> isize {
+
+    syscall(SYSCALL_PIPE,[pipe.as_mut_ptr() as usize, 0, 0])
 }
