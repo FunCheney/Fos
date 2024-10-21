@@ -1,8 +1,8 @@
 //! File and filesystem-related syscalls
 use log::info;
 
-use crate::fs::{open_file, OpenFlags};
-use crate::mm::{translated_byte_buffer, translated_str, UserBuffer};
+use crate::fs::{make_pipe, open_file, OpenFlags};
+use crate::mm::{translated_byte_buffer, translated_refmut, translated_str, UserBuffer};
 use crate::task::{current_task, current_user_token};
 
 pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
@@ -74,7 +74,19 @@ pub fn sys_close(fd: usize) -> isize {
     0
 }
 
-pub fn sys_pipe(fd: usize) -> isize {
-
+pub fn sys_pipe(pipe: *mut usize) -> isize {
+    let task = current_task().unwrap();
+    let token = current_user_token();
+    let mut inner = task.acquire_inner_lock();
+    // 创建一个管道，并获取其读写端
+    let (pipe_read, pipe_write) = make_pipe();
+    // 为读端和写端分配文件描述符并将它们放置在文件描述符表中的相应位置中
+    let read_fd = inner.alloc_fd();
+    inner.fd_table[read_fd] = Some(pipe_read);
+    let write_fd = inner.alloc_fd();
+    inner.fd_table[write_fd] = Some(pipe_write);
+    // 将读端和写端的文件描述符写回到应用地址空间
+    *translated_refmut(token, pipe) = read_fd;
+    *translated_refmut(token, unsafe { pipe.add(1) }) = write_fd;
     0
 }

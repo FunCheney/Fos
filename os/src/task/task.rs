@@ -63,6 +63,7 @@ pub struct TaskControlBlockInner {
     // 当进程调用 exit 系统调用，或者执行出错，由内核终止的时候，保存 exit_code 在
     // 它的任务块中，并等待它的父进程通过 waitpid 的方式回收它的资源，收集它的 pid 以及退出码
     pub exit_code: i32,
+    // 文件描述符表
     pub fd_table: Vec<Option<Arc<dyn File + Send + Sync>>>,
 }
 
@@ -90,10 +91,15 @@ impl TaskControlBlockInner {
     pub fn is_zombie(&self) -> bool {
         self.get_status() == TaskStatus::Zombie
     }
+
+    /// 在进程控制块中分配一个最小的空闲文件描述符来访问一个新打开的文件夹。
     pub fn alloc_fd(&mut self) -> usize {
-        if let Some(fd) = (0..self.fd_table.len()).find(|fd| self.fd_table[*fd].is_none()) {
+        // 从小到大遍历所有曾经分配过的文件描述符尝试找到一个空闲的
+        if let Some(fd) = (0..self.fd_table.len())
+            .find(|fd| self.fd_table[*fd].is_none()) {
             fd
         } else {
+            // 没有找到，拓展文件描述符表的长度并新分配一个
             self.fd_table.push(None);
             self.fd_table.len() - 1
         }
@@ -140,12 +146,13 @@ impl TaskControlBlock {
                     parent: None,
                     children: Vec::new(),
                     exit_code: 0,
+                    // 当一个进程被创建的时候，内核会默认为其打开三个缺省就存在的文件：
                     fd_table: vec![
-                        // 0 -> stdin
+                        // 0 -> stdin 文件描述符 0； 标准输入
                         Some(Arc::new(Stdin)),
-                        // 1 -> stdout
+                        // 1 -> stdout 文件描述符 1: 标准输出
                         Some(Arc::new(Stdout)),
-                        // 2 -> stderr
+                        // 2 -> stderr 文件描述符 2: 标准错误的输出
                         Some(Arc::new(Stdout)),
                     ],
                 })
@@ -214,6 +221,7 @@ impl TaskControlBlock {
         let kernel_stack = KernelStack::new(&pid_handle);
         let kernel_stack_top = kernel_stack.get_top();
         let mut new_fd_table: Vec<Option<Arc<dyn File + Send + Sync>>> = Vec::new();
+        // 子进程需要完全继承父进程的文件描述符表来和父进程共享所有文件
         for fd in parent_inner.fd_table.iter() {
             if let Some(file) = fd {
                 new_fd_table.push(Some(file.clone()));

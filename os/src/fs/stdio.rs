@@ -8,6 +8,9 @@ pub struct Stdin;
 ///Standard output
 pub struct Stdout;
 
+/// stdin 只读文件
+/// 1. 允许进程从里面读入文件
+/// 2. 目前只允许读入一个字符
 impl File for Stdin {
     fn readable(&self) -> bool {
         true
@@ -15,6 +18,7 @@ impl File for Stdin {
     fn writable(&self) -> bool {
         false
     }
+    /// 通过 UserBuffer 来获取具体字节的写入位置
     fn read(&self, mut user_buf: UserBuffer) -> usize {
         assert_eq!(user_buf.len(), 1);
         // busy loop
@@ -39,6 +43,8 @@ impl File for Stdin {
     }
 }
 
+/// stdout 表示只读文件
+/// 1. 允许进程读文件，不允许写
 impl File for Stdout {
     fn readable(&self) -> bool {
         false
@@ -49,6 +55,7 @@ impl File for Stdout {
     fn read(&self, _user_buf: UserBuffer) -> usize {
         panic!("Cannot read from stdout!");
     }
+    /// 实现方法是遍历每个切片，将其转化为字符串通过 print! 宏来输出。
     fn write(&self, user_buf: UserBuffer) -> usize {
         for buffer in user_buf.buffers.iter() {
             print!("{}", core::str::from_utf8(*buffer).unwrap());
