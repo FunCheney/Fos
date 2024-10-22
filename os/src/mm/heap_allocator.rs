@@ -4,7 +4,8 @@ use crate::config::KERNEL_HEAP_SIZE;
 use buddy_system_allocator::LockedHeap;
 
 #[global_allocator]
-/// heap allocator instance
+/// 将 buddy_system_allocator 中提供的 LockedHeap 实例化成一个全局变量，并使用 alloc 要求的
+/// #[global_allocator] 语义项进行标记。注意 LockedHeap 已经实现了 GlobalAlloc 要求的抽象接口了。
 static HEAP_ALLOCATOR: LockedHeap = LockedHeap::empty();
 
 #[alloc_error_handler]

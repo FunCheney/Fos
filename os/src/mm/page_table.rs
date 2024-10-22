@@ -19,7 +19,7 @@ bitflags! {
         const D = 1 << 7;
     }
 }
-/// 让编译器自动上线 Copy/Clone Trait
+/// 让编译器自动实现 Copy/Clone Trait
 /// 让这个类型以值语义赋值/传参时不会发生所有权转转移，而是拷贝一份新的副本。
 /// PageTable 是 usize 的一层简单的封装
 #[derive(Copy, Clone)]

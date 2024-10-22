@@ -10,24 +10,27 @@ const VA_WIDTH_SV39: usize = 39;
 const PPN_WIDTH_SV39: usize = PA_WIDTH_SV39 - PAGE_SIZE_BITS;
 const VPN_WIDTH_SV39: usize = VA_WIDTH_SV39 - PAGE_SIZE_BITS;
 
-/// Definitions PhysAdd-1r
+/// Definitions PhysAdd
+/// 物理地址
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct PhysAddr(pub usize);
 
 /// virtual address
+/// 虚拟地址
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct VirtAddr(pub usize);
 
 /// physical page number
+/// 物理地址页
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct PhysPageNum(pub usize);
 
 /// virtual page number
+/// 虚拟地址页
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct VirtPageNum(pub usize);
 
 /// Debugging
-
 impl Debug for VirtAddr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_fmt(format_args!("VA:{:#x}", self.0))
@@ -53,6 +56,7 @@ impl Debug for PhysPageNum {
 /// T -> usize: T.0
 /// usize -> T: usize.into()
 ///  usize to PhysAddr
+/// 将一个指针 转为 物理地址
 impl From<usize> for PhysAddr {
     fn from(v: usize) -> Self {
         Self(v & ((1 << PA_WIDTH_SV39) - 1))
@@ -60,31 +64,45 @@ impl From<usize> for PhysAddr {
 }
 
 /// usize to PhysPageNum
+/// 将一个指针转为物理地址页
 impl From<usize> for PhysPageNum {
     fn from(v: usize) -> Self {
         Self(v & ((1 << PPN_WIDTH_SV39) - 1))
     }
 }
+
+/// usize to VirtAddr
+/// 将一个指针转为 虚拟地址
 impl From<usize> for VirtAddr {
     fn from(v: usize) -> Self {
         Self(v & ((1 << VA_WIDTH_SV39) - 1))
     }
 }
+
+/// usize to VirtPageNum
+/// 将一个指针转为 虚拟地址页
 impl From<usize> for VirtPageNum {
     fn from(v: usize) -> Self {
         Self(v & ((1 << VPN_WIDTH_SV39) - 1))
     }
 }
+
+/// PhysAddr to uszie
+/// 物理地址转为 指针
 impl From<PhysAddr> for usize {
     fn from(v: PhysAddr) -> Self {
         v.0
     }
 }
+
+/// 物理地址页转为指针
 impl From<PhysPageNum> for usize {
     fn from(v: PhysPageNum) -> Self {
         v.0
     }
 }
+
+/// 虚拟地址转为指针
 impl From<VirtAddr> for usize {
     fn from(v: VirtAddr) -> Self {
         if v.0 >= (1 << (VA_WIDTH_SV39 - 1)) {
@@ -94,6 +112,8 @@ impl From<VirtAddr> for usize {
         }
     }
 }
+
+/// 虚拟地址页转为指针
 impl From<VirtPageNum> for usize {
     fn from(v: VirtPageNum) -> Self {
         v.0
@@ -101,12 +121,13 @@ impl From<VirtPageNum> for usize {
 }
 
 impl VirtAddr {
-    // 下取整
+    // 下取整 虚拟地址起始地址
+    // 虚拟地址转为 虚拟地址页
     pub fn floor(&self) -> VirtPageNum {
         VirtPageNum(self.0 / PAGE_SIZE)
     }
 
-    // 上取整
+    // 上取整 虚拟地址结束
     pub fn ceil(&self) -> VirtPageNum {
         if self.0 == 0 {
             VirtPageNum(0)

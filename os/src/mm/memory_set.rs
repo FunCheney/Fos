@@ -116,7 +116,7 @@ impl MemorySet {
 
     /// Without kernel stacks.
     /// 生成内核的地址空间
-    /// 通过该方后，整个内核的地址空间都是对等映射，说明虚拟页就是物理页，
+    /// 通过该方法后，整个内核的地址空间都是对等映射，说明虚拟页就是物理页，
     /// 想访问那个地址，直接访问就行
     pub fn new_kernel() -> Self {
         let mut memory_set = Self::new_bare();
@@ -333,7 +333,12 @@ impl MemorySet {
         memory_set
     }
 
+    /// 使能分页机制
     /// 使用 activate 方法使其生效
+    /// 使能分页机制后，cpu 访问的地址都是虚拟地址，内河中页是基于虚拟地址进行虚存的访问
+    ///  1. 在给应用添加虚拟地址空间之前，内核自己也会建立一个页表
+    ///         把整块物理地址通过恒等映射，映射到内核的虚拟地址空间中。
+    ///  2. 在应用执行之前，操作系统帮助其建立一个虚拟地址空间。
     pub fn activate(&self) {
         // 调用 token 方法
         let satp = self.page_table.token();

@@ -44,7 +44,8 @@ pub struct TaskControlBlockInner {
     pub user_time: usize,
     #[allow(unused)]
     pub kernel_time: usize,
-    // 应用的地址空间
+    // 拥有独立的页表
+    // 应用的地址空间 （虚拟地址空间）
     pub memory_set: MemorySet,
     // 位于应用地址空间次高页的 Trap 上下文被实际存放在物理页帧的物理页号
     pub trap_cx_ppn: PhysPageNum,
