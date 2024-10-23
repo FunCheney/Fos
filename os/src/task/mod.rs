@@ -83,7 +83,7 @@ lazy_static! {
         let inode = open_file("initproc", OpenFlags::RDONLY).unwrap();
         let v = inode.read_all();
         TaskControlBlock::new(v.as_slice())
-        });
+    });
 }
 
 pub fn add_initproc() {

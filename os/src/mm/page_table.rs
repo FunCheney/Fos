@@ -5,17 +5,25 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use bitflags::*;
-
+/// bitflags 是一个 Rust 中常用来比特标志位的 crate
+/// 将一个 u8 封装成一个标志位的集合类型，支持一些常见的集合运算
 bitflags! {
     /// page table entry flags
     pub struct PTEFlags: u8 {
+        // 仅当位 V 为 1 时，页表项才是合法的
         const V = 1 << 0;
+        // R 位表示 页表项对应的虚拟页面允许读
         const R = 1 << 1;
+        // W 位表示 页表项对应的虚拟页面允许写
         const W = 1 << 2;
+        // X 位表示 页表项对应的虚拟页面是否允许可执行
         const X = 1 << 3;
+        // 控制索引到这个页表项的对应虚拟页面是否在 CPU 处于 U 特权级的情况下是否被允许访问
         const U = 1 << 4;
         const G = 1 << 5;
+        // 处理器记录自从页表项上的这一位被清零之后，页表项的对应虚拟页面是否被访问过
         const A = 1 << 6;
+        // 处理器记录自从页表项上的这一位被清零之后，页表项的对应虚拟页面是否被修改过
         const D = 1 << 7;
     }
 }
@@ -37,6 +45,7 @@ impl PageTableEntry {
         }
     }
 
+    /// 生成一个全零的页表项，注意这隐含着该页表项的 V 标志位为 0 ，因此它是不合法的。
     pub fn empty() -> Self {
         PageTableEntry { bits: 0 }
     }

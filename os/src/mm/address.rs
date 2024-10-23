@@ -52,9 +52,6 @@ impl Debug for PhysPageNum {
     }
 }
 
-/// T: {PhysAddr, VirtAddr, PhysPageNum, VirtPageNum}
-/// T -> usize: T.0
-/// usize -> T: usize.into()
 ///  usize to PhysAddr
 /// 将一个指针 转为 物理地址
 impl From<usize> for PhysAddr {
@@ -144,17 +141,22 @@ impl VirtAddr {
         self.page_offset() == 0
     }
 }
+
+/// 虚拟地址转虚拟页号
 impl From<VirtAddr> for VirtPageNum {
     fn from(v: VirtAddr) -> Self {
         assert_eq!(v.page_offset(), 0);
         v.floor()
     }
 }
+
+/// 虚拟页号转虚拟地址
 impl From<VirtPageNum> for VirtAddr {
     fn from(v: VirtPageNum) -> Self {
         Self(v.0 << PAGE_SIZE_BITS)
     }
 }
+
 impl PhysAddr {
     pub fn floor(&self) -> PhysPageNum {
         PhysPageNum(self.0 / PAGE_SIZE)
@@ -182,14 +184,17 @@ impl PhysAddr {
         unsafe { (self.0 as *const T).as_ref().unwrap() }
     }
 }
+
+/// 物理地址转物理页号
 impl From<PhysAddr> for PhysPageNum {
     fn from(v: PhysAddr) -> Self {
         assert_eq!(v.page_offset(), 0);
         v.floor()
     }
 }
+
+/// 物理页号转物理地址
 impl From<PhysPageNum> for PhysAddr {
-    // 物理地址到物理页号的转换
     fn from(v: PhysPageNum) -> Self {
         // 左移12 位
         Self(v.0 << PAGE_SIZE_BITS)

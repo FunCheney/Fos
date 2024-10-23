@@ -34,7 +34,6 @@
    * easyfs文件系统中管理这些磁盘数据的控制逻辑主要集中在 磁盘块管理器 中，这是文件系统的第四层。对于文件系统管理而言，其核心是
      EasyFileSystem 数据结构及其关键成员函数：
    ```rust
-   
      EasyFileSystem.create：创建文件系统
      EasyFileSystem.open：打开文件系统
      EasyFileSystem.alloc_inode：分配inode （dealloc_inode未实现，所以还不能删除文件）
