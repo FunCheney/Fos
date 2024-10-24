@@ -70,6 +70,10 @@ fn clear_bss() {
     });
 }
 
+pub fn dup(fd: usize) -> isize {
+    sys_dup(fd)
+}
+
 /// 对 syscall 模块中的 sys_exit, sys_write 进一步封装
 pub fn exit(exit_code: i32) -> isize {
     sys_exit(exit_code)
@@ -124,8 +128,8 @@ pub fn fork() -> isize {
     sys_fork()
 }
 
-pub fn exec(path: &str) -> isize {
-    sys_exec(path)
+pub fn exec(path: &str, args: &[*const u8]) -> isize {
+    sys_exec(path, args)
 }
 
 pub fn read(fd: usize, buf: &mut [u8]) -> isize {
@@ -164,6 +168,6 @@ pub fn sleep(period_ms: usize) {
     }
 }
 
-pub fn pipe(pipe_fd: &mut [usize]) -> isize{
+pub fn pipe(pipe_fd: &mut [usize]) -> isize {
     sys_pipe(pipe_fd)
 }

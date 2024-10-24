@@ -1,5 +1,6 @@
 use core::arch::asm;
 
+const SYSCALL_DUP: usize = 24;
 pub const SYSCALL_OPEN: usize = 56;
 pub const SYSCALL_CLOSE: usize = 57;
 pub const SYSCALL_PIPE: usize = 59;
@@ -38,6 +39,10 @@ fn syscall(id: usize, args: [usize; 3]) -> isize {
         );
     }
     ret
+}
+
+pub fn sys_dup(fd: usize) -> isize {
+    syscall(SYSCALL_DUP, [fd, 0, 0])
 }
 
 /// 功能： 将内存中缓冲区中的数据写入文件
@@ -92,11 +97,15 @@ pub fn sys_getpid() -> isize {
 }
 
 /// 功能: 将当前进程的地址空间清空，并加载一个特定的可执行文件，返回用户态之后开始执行他
-/// 参数: path 给出了要加载的可执行文件的名字
+/// 参数: path 给出了要加载的可执行文件的名
+/// 参数: args 数组总每一个元素都是命令行字符串的起始地址
 /// 返回值: 如果出错的话（如果找不到名字相符的可执行文件）则返回 -1, 否则不应该返回
 /// syscall ID: 221
-pub fn sys_exec(path: &str) -> isize {
-    syscall(SYSCALL_EXEC, [path.as_ptr() as usize, 0, 0])
+pub fn sys_exec(path: &str, args: &[*const u8]) -> isize {
+    syscall(
+        SYSCALL_EXEC,
+        [path.as_ptr() as usize, args.as_ptr() as usize, 0],
+    )
 }
 
 /// 功能: 当前进程等待一个子进程变为僵尸进程，回收其全部资源并收集其返回值
@@ -143,6 +152,5 @@ pub fn sys_close(fd: usize) -> isize {
 /// 返回值：如果出现了错误则返回 -1，否则返回 0 。可能的错误原因是：传入的地址不合法。
 /// syscall ID：59
 pub fn sys_pipe(pipe: &mut [usize]) -> isize {
-
-    syscall(SYSCALL_PIPE,[pipe.as_mut_ptr() as usize, 0, 0])
+    syscall(SYSCALL_PIPE, [pipe.as_mut_ptr() as usize, 0, 0])
 }
