@@ -10,6 +10,9 @@ mod syscall;
 
 #[macro_use]
 extern crate bitflags;
+extern crate alloc;
+
+use alloc::vec::Vec;
 use buddy_system_allocator::LockedHeap;
 use syscall::*;
 
@@ -29,16 +32,35 @@ pub fn handle_alloc_error(layout: core::alloc::Layout) -> ! {
 /// .text.entry 的代码段中。方便我们在后续链接的时候调整它的位置使的它能作为用户库的入口。
 #[link_section = ".text.entry"]
 /// 定义了用户库的入口点 _start
-pub extern "C" fn _start() -> ! {
+/// 在入口 _start 中我们就接收到了命令行参数个数 argc 和字符串数组的起始地址 argv
+pub extern "C" fn _start(argc: usize, argv: usize) -> ! {
     // 手动清空需要零初始化的 .bss 段
     //clear_bss();
     unsafe {
         HEAP.lock()
             .init(HEAP_SPACE.as_ptr() as usize, USER_HEAP_SIZE);
     }
+    let mut v: Vec<&'static str> = Vec::new();
+    for i in 0..argc {
+        let str_start =
+        unsafe {((argv + i * core::mem::size_of::<usize>()) as *const usize).read_volatile()};
+
+        let len = (0usize..)
+            .find(|i| unsafe {((str_start + *i) as *const u8).read_volatile() == 0 })
+            .unwrap();
+
+        v.push(
+            core::str::from_utf8(
+                unsafe {
+                    core::slice::from_raw_parts(str_start as *const u8, len)
+                }
+            ).unwrap()
+        );
+    }
+
     // 然后调用 一个 main 函数的到一个类型值为 i32 的返回值，
     // 最后调用用户库提供的 exit 接口退出应用程序
-    exit(main());
+    exit(main(argc, v.as_slice()));
     panic!("sys exit");
 }
 
@@ -48,7 +70,7 @@ pub extern "C" fn _start() -> ! {
 /// 如果 bin 目录下找不到 任何 main, 那么编译也能通过，但是在运行时会报错
 #[linkage = "weak"]
 #[no_mangle]
-fn main() -> i32 {
+fn main(_argc: usize, _argv: &[&str]) -> i32 {
     panic!("not found main");
 }
 

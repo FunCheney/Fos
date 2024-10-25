@@ -174,55 +174,66 @@ impl TaskControlBlock {
         task_control_block
     }
 
-    pub fn exec(&self, elf_data: &[u8], args:Vec<String>) {
-        // 解析 elf文件创建 地址空间
-        let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
+    pub fn exec(&self, elf_data: &[u8], args: Vec<String>) {
+        // memory_set with elf program headers/trampoline/trap context/user stack
+        let (memory_set, mut user_sp, entry_point) = MemorySet::from_elf(elf_data);
         let trap_cx_ppn = memory_set
             .translate(VirtAddr::from(TRAP_CONTEXT).into())
             .unwrap()
             .ppn();
-
+        // push arguments on user stack
+        // 将命令行参数 压栈
+        // 数组中的每个元素都指向一个用户栈更低处的命令行参数字符串的起始地址
         user_sp -= (args.len() + 1) * core::mem::size_of::<usize>();
         let argv_base = user_sp;
-        let mut argv: Vec<_> = (0..args.len())
+        // 最开始我们只是分配空间，具体的值要等到字符串被放到用户栈上之后才能确定更新
+        let mut argv: Vec<_> = (0..=args.len())
             .map(|arg| {
-                translated_refmut(memory_set.token(), 
-                    (argv_base + arg * core::mem::size_of::<usize>()) as * mut usize,)
-            }).collect();
+                translated_refmut(
+                    memory_set.token(),
+                    (argv_base + arg * core::mem::size_of::<usize>()) as *mut usize,
+                )
+            })
+            .collect();
         *argv[args.len()] = 0;
-
+        // 将传入的 args 中的字符串压入到用户栈中
+        // 我们在用户栈上预留空间之后逐字节进行复制
         for i in 0..args.len() {
-            user_sp -= args[1].len() + 1;
+            user_sp -= args[i].len() + 1;
             *argv[i] = user_sp;
             let mut p = user_sp;
             for c in args[i].as_bytes() {
+                // translated_str 从应用地址空间取出的，它的末尾不包含 \0 。
+                // 为了应用能知道每个字符串的长度，我们需要手动在末尾加入 \0
                 *translated_refmut(memory_set.token(), p as *mut u8) = *c;
                 p += 1;
             }
-
             *translated_refmut(memory_set.token(), p as *mut u8) = 0;
         }
+        // make the user_sp aligned to 8B for k210 platform
+        // 将 user_sp 以 8 字节对齐
+        // 这是因为命令行参数的长度不一，很有可能压入之后 user_sp 没有对齐到 8 字节，
+        // 那么在 K210 平台上在访问用户栈的时候就会触发访存不对齐的异常。在 Qemu 平台上则并不存在这个问题
+        user_sp -= user_sp % core::mem::size_of::<usize>();
 
-        user_sp -= user_sp % core::mem::size_of()::<usize>;
-
-        // **** access inner exclusively
-        let mut inner = self.inner.exclusive_access();
-        // 绑定到新创建的 memory_set
+        // **** access current TCB exclusively
+        let mut inner = self.inner_exclusive_access();
+        // substitute memory_set
         inner.memory_set = memory_set;
+        // update trap_cx ppn
         inner.trap_cx_ppn = trap_cx_ppn;
-        inner.base_size = user_sp;
-        let trap_cx = inner.get_trap_cx();
-
-        // 修改 trap_cx
-        *trap_cx = TrapContext::app_init_context(
+        // initialize trap_cx
+        let mut trap_cx = TrapContext::app_init_context(
             entry_point,
             user_sp,
             KERNEL_SPACE.exclusive_access().token(),
             self.kernel_stack.get_top(),
             trap_handler as usize,
         );
-
-        // **** release inner automatically
+        trap_cx.x[10] = args.len();
+        trap_cx.x[11] = argv_base;
+        *inner.get_trap_cx() = trap_cx;
+        // **** release current PCB
     }
 
     /// TCB 的构建过程，复制父进程的内容，并构造新的进程控制块
