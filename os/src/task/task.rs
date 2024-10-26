@@ -1,21 +1,23 @@
 //! Types related to task manager
 
+use super::{
+    pid::{pid_alloc, KernelStack, PidHandle},
+    SignalActions, SignalFlags, TaskContext,
+};
 use crate::fs::{File, Stdin, Stdout};
-use core::cell::RefMut;
+use crate::{
+    config::TRAP_CONTEXT,
+    mm::{translated_refmut, MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE},
+    sync::UPSafeCell,
+    trap::{trap_handler, TrapContext},
+};
 use alloc::string::String;
 use alloc::vec;
 use alloc::{
     sync::{Arc, Weak},
     vec::Vec,
 };
-use super::{pid::{pid_alloc, KernelStack, PidHandle},
-            TaskContext, SignalActions, SignalFlags};
-use crate::{
-    config::TRAP_CONTEXT,
-    mm::{MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE, translated_refmut},
-    sync::UPSafeCell,
-    trap::{trap_handler, TrapContext},
-};
+use core::cell::RefMut;
 
 /// 第五部分: 重构 TaskControlBlock
 pub struct TaskControlBlock {
@@ -106,8 +108,7 @@ impl TaskControlBlockInner {
     /// 在进程控制块中分配一个最小的空闲文件描述符来访问一个新打开的文件夹。
     pub fn alloc_fd(&mut self) -> usize {
         // 从小到大遍历所有曾经分配过的文件描述符尝试找到一个空闲的
-        if let Some(fd) = (0..self.fd_table.len())
-            .find(|fd| self.fd_table[*fd].is_none()) {
+        if let Some(fd) = (0..self.fd_table.len()).find(|fd| self.fd_table[*fd].is_none()) {
             fd
         } else {
             // 没有找到，拓展文件描述符表的长度并新分配一个
@@ -116,7 +117,6 @@ impl TaskControlBlockInner {
         }
     }
 }
-
 
 impl TaskControlBlock {
     pub fn inner_exclusive_access(&self) -> RefMut<'_, TaskControlBlockInner> {

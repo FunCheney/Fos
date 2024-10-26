@@ -5,8 +5,9 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use bitflags::*;
-/// bitflags 是一个 Rust 中常用来比特标志位的 crate
-/// 将一个 u8 封装成一个标志位的集合类型，支持一些常见的集合运算
+
+// bitflags 是一个 Rust 中常用来比特标志位的 crate
+// 将一个 u8 封装成一个标志位的集合类型，支持一些常见的集合运算
 bitflags! {
     /// page table entry flags
     pub struct PTEFlags: u8 {

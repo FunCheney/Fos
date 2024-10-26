@@ -6,13 +6,14 @@ mod pid;
 mod processor;
 mod switch;
 
+mod action;
+mod signal;
 #[allow(clippy::rodule_inception)]
 mod task;
-mod signal;
-mod action;
 
 use crate::fs::{open_file, OpenFlags};
 use crate::sbi::shutdown;
+pub use action::{SignalAction, SignalActions};
 use alloc::sync::Arc;
 pub use context::TaskContext;
 use lazy_static::*;
@@ -20,10 +21,9 @@ pub use manager::{add_task, fetch_task, pid2task};
 pub use processor::{
     current_task, current_trap_cx, current_user_token, run_tasks, schedule, take_current_task,
 };
+pub use signal::{SignalFlags, MAX_SIG};
 use switch::__switch;
 use task::{TaskControlBlock, TaskStatus};
-pub use action::{SignalAction, SignalActions};
-pub use signal::{SignalFlags, MAX_SIG};
 
 pub fn suspend_current_and_run_next() {
     let task = take_current_task().unwrap();
@@ -152,7 +152,7 @@ fn call_user_signal_handler(sig: usize, signal: SignalFlags) {
         task_inner.signals ^= signal;
 
         // backup trapframe
-        let &mut mut trap_ctx = task_inner.get_trap_cx();
+        let trap_ctx = task_inner.get_trap_cx();
         task_inner.trap_ctx_backup = Some(*trap_ctx);
 
         // modify trapframe

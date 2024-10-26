@@ -1,12 +1,9 @@
 /// 管道是一种进程间通信机制，由操作系统提供，并可通过直接编程或在shell程序的帮助下轻松地把不同进程（目前是父子进程之间或子子进程之间）的输入和输出对接起来。
 /// 将管道看成一个有一定缓冲区大小的字节队列，它分为读和写两端，需要通过不同的文件描述符来访问。读端只能用来从管道中读取，而写端只能用来将数据写入管道。
-
-
 use super::File;
-use crate::mm::UserBuffer;
-use crate::sync::UPSafeCell;
-use alloc::sync::{Arc, Weak};
 use crate::task::suspend_current_and_run_next;
+use crate::{mm::UserBuffer, sync::UPSafeCell};
+use alloc::sync::{Arc, Weak};
 
 /// 管道
 pub struct Pipe {
@@ -15,7 +12,7 @@ pub struct Pipe {
     /// 是否可写
     writeable: bool,
     /// 找到管道所在的管道自身
-    buffer: Arc<Mutex<PipeRingBuffer>>,
+    buffer: Arc<UPSafeCell<PipeRingBuffer>>,
 }
 
 const RING_BUFFER_SIZE: usize = 32;
@@ -76,6 +73,15 @@ impl PipeRingBuffer {
         c
     }
 
+    pub fn write_byte(&mut self, byte: u8) {
+        self.status = RingBufferStatus::Normal;
+        self.arr[self.tail] = byte;
+        self.tail = (self.tail + 1) % RING_BUFFER_SIZE;
+        if self.tail == self.head {
+            self.status = RingBufferStatus::Full;
+        }
+    }
+
     /// 计算管道中还有多少个字符可以读取
     /// 因为队头和队尾相等可能表示队列为空或队列已满
     /// 如果队列为空的话直接返回 0，否则根据队头和队尾的相对位置进行计算
@@ -110,7 +116,7 @@ impl PipeRingBuffer {
 }
 
 impl Pipe {
-    pub fn read_end_with_buffer(buffer: Arc<Mutex<PipeRingBuffer>>) -> Self {
+    pub fn read_end_with_buffer(buffer: Arc<UPSafeCell<PipeRingBuffer>>) -> Self {
         Self {
             readable: true,
             writeable: false,
@@ -118,7 +124,7 @@ impl Pipe {
         }
     }
 
-    pub fn write_end_with_buffer(buffer: Arc<Mutex<PipeRingBuffer>>) -> Self {
+    pub fn write_end_with_buffer(buffer: Arc<UPSafeCell<PipeRingBuffer>>) -> Self {
         Self {
             readable: false,
             writeable: true,
@@ -127,17 +133,12 @@ impl Pipe {
     }
 }
 
+/// Return (read_end, write_end)
 pub fn make_pipe() -> (Arc<Pipe>, Arc<Pipe>) {
-    let buffer = Arc::new(Mutex::new(PipeRingBuffer::new()));
-    let read_end = Arc::new(
-        Pipe::read_end_with_buffer(buffer.clone())
-    );
-
-    let write_end = Arc::new(
-        Pipe::write_end_with_buffer(buffer.clone())
-    );
-
-    buffer.lock().set_write_end(&write_end);
+    let buffer = Arc::new(unsafe { UPSafeCell::new(PipeRingBuffer::new()) });
+    let read_end = Arc::new(Pipe::read_end_with_buffer(buffer.clone()));
+    let write_end = Arc::new(Pipe::write_end_with_buffer(buffer.clone()));
+    buffer.exclusive_access().set_write_end(&write_end);
     (read_end, write_end)
 }
 

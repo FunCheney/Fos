@@ -4,7 +4,7 @@
 #[macro_use]
 extern crate user_lib;
 
-use user_lib::{exit, fork, get_time, getpid, wait};
+use user_lib::{exit, fork, get_time, getpid, sleep, wait};
 
 static NUM: usize = 30;
 
@@ -17,7 +17,7 @@ pub fn main() -> i32 {
             let sleep_length =
                 (current_time as i32 as isize) * (current_time as i32 as isize) % 1000 + 1000;
             println!("pid {} sleep for {} ms", getpid(), sleep_length);
-            //sleep(sleep_length as usize);
+            sleep(sleep_length as usize);
             println!("pid {} OK!", getpid());
             exit(0);
         }

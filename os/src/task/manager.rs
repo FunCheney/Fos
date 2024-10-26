@@ -1,5 +1,5 @@
+use alloc::collections::BTreeMap;
 use alloc::{collections::vec_deque::VecDeque, sync::Arc};
-use alloc::collections::{BTreeMap};
 
 use super::TaskControlBlock;
 
@@ -40,7 +40,7 @@ lazy_static! {
 pub fn add_task(task: Arc<TaskControlBlock>) {
     PID2TCB
         .exclusive_access()
-        .insert(task.getpid(), Arc::clone(&task));
+        .insert(task.get_pid(), Arc::clone(&task));
     TASK_MANAGER.exclusive_access().add(task);
 }
 
@@ -53,6 +53,7 @@ pub fn pid2task(pid: usize) -> Option<Arc<TaskControlBlock>> {
     map.get(&pid).map(Arc::clone)
 }
 
+#[allow(unused)]
 pub fn remove_from_pid2task(pid: usize) {
     let mut map = PID2TCB.exclusive_access();
     if map.remove(&pid).is_none() {

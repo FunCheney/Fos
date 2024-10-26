@@ -1,19 +1,24 @@
+use crate::SignalAction;
 use core::arch::asm;
 
 const SYSCALL_DUP: usize = 24;
-pub const SYSCALL_OPEN: usize = 56;
-pub const SYSCALL_CLOSE: usize = 57;
-pub const SYSCALL_PIPE: usize = 59;
-pub const SYSCALL_READ: usize = 63;
-pub const SYSCALL_WRITE: usize = 64;
-pub const SYSCALL_EXIT: usize = 93;
-pub const SYSCALL_YIELD: usize = 124;
-pub const SYSCALL_GET_TIME: usize = 169;
-pub const SYSCALL_TASK_INFO: usize = 410;
-pub const SYSCALL_FORK: usize = 220;
-pub const SYSCALL_GETPID: usize = 172;
-pub const SYSCALL_EXEC: usize = 221;
-pub const SYSCALL_WAITPID: usize = 260;
+const SYSCALL_OPEN: usize = 56;
+const SYSCALL_CLOSE: usize = 57;
+const SYSCALL_PIPE: usize = 59;
+const SYSCALL_READ: usize = 63;
+const SYSCALL_WRITE: usize = 64;
+const SYSCALL_EXIT: usize = 93;
+const SYSCALL_YIELD: usize = 124;
+const SYSCALL_KILL: usize = 129;
+const SYSCALL_SIGACTION: usize = 134;
+const SYSCALL_SIGPROCMASK: usize = 135;
+const SYSCALL_SIGRETURN: usize = 139;
+const SYSCALL_GET_TIME: usize = 169;
+const SYSCALL_GETPID: usize = 172;
+const SYSCALL_FORK: usize = 220;
+const SYSCALL_EXEC: usize = 221;
+const SYSCALL_WAITPID: usize = 260;
+const SYSCALL_TASK_INFO: usize = 410;
 
 /// 功能: 将系统调用封装成 syscall 函数
 /// 参数: 'id' 系统调用id
@@ -153,4 +158,37 @@ pub fn sys_close(fd: usize) -> isize {
 /// syscall ID：59
 pub fn sys_pipe(pipe: &mut [usize]) -> isize {
     syscall(SYSCALL_PIPE, [pipe.as_mut_ptr() as usize, 0, 0])
+}
+
+pub fn sys_kill(pid: usize, signal: i32) -> isize {
+    syscall(SYSCALL_KILL, [pid, signal as usize, 0])
+}
+
+pub fn sys_sigaction(
+    signum: i32,
+    action: *const SignalAction,
+    old_action: *mut SignalAction,
+) -> isize {
+    syscall(
+        SYSCALL_SIGACTION,
+        [signum as usize, action as usize, old_action as usize],
+    )
+    /*
+    syscall(
+        SYSCALL_SIGACTION,
+        [
+            signum as usize,
+            action.map_or(0, |r| r as *const _ as usize),
+            old_action.map_or(0, |r| r as *mut _ as usize),
+        ],
+    )
+    */
+}
+
+pub fn sys_sigprocmask(mask: u32) -> isize {
+    syscall(SYSCALL_SIGPROCMASK, [mask as usize, 0, 0])
+}
+
+pub fn sys_sigreturn() -> isize {
+    syscall(SYSCALL_SIGRETURN, [0, 0, 0])
 }

@@ -38,7 +38,7 @@ global_asm!(include_str!("entry.asm"));
 
 // 引入汇编代码 link_app.S 一开始并不存在，而是在构建操作系统时自动生成
 // 执行 cargo build 时，由脚本 os/build.rs 控制生成
-global_asm!(include_str!("link_app.S"));
+// global_asm!(include_str!("link_app.S"));
 
 #[no_mangle]
 fn rust_main() -> ! {
@@ -49,8 +49,6 @@ fn rust_main() -> ! {
     mm::init();
     info!("[kernel] back to os");
     mm::remap_test();
-    // 添加初始化进程
-    task::add_initproc();
     info!("[kernel] init process...");
     trap::init();
     info!("[kernel] trap init...");
@@ -60,11 +58,12 @@ fn rust_main() -> ! {
     timer::set_next_trigger();
     info!("[kernel| get user app...");
     // 系统中的 app 列表
-    loader::list_apps();
+    // loader::list_apps();
+    fs::list_apps();
     // 调用 run-tasks
     info!("[kernel] run task...");
+    task::add_initproc();
     task::run_tasks();
-
     panic!("unreachable in rust main");
 }
 

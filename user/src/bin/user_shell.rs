@@ -130,7 +130,7 @@ pub fn main() -> i32 {
                                 let args_addr = &process_argument.args_addr;
                                 // redirect input
                                 if !input.is_empty() {
-                                    let input_fd = open(input.as_str(), OpenFlags::RDONLY);
+                                    let input_fd = open(input.as_str(), OpenFlags::READONLY);
                                     if input_fd == -1 {
                                         println!("Error when opening file {}", input);
                                         return -4;
