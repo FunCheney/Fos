@@ -5,7 +5,8 @@
 mod context;
 
 use crate::config::{TRAMPOLINE, TRAP_CONTEXT};
-use crate::task::{current_trap_cx, current_user_token, exit_current_and_run_next};
+use crate::task::{check_signals_error_of_current, current_add_signal, current_trap_cx,
+                  current_user_token, exit_current_and_run_next, handle_signals, SignalFlags};
 use crate::timer::set_next_trigger;
 use crate::{syscall::syscall, task::suspend_current_and_run_next};
 use core::arch::{asm, global_asm};
@@ -87,8 +88,9 @@ pub fn trap_handler() -> ! {
         | Trap::Exception(Exception::LoadPageFault) => {
             info!("[Kernel] PageFault in app, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.", stval, cx.sepc);
             //run_next_app();
-            exit_current_and_run_next(-2);
+            // exit_current_and_run_next(-2);
             //panic!("[kernel] not continue!");
+            current_add_signal(SignalFlags::SIGSEGV);
         }
         Trap::Exception(Exception::IllegalInstruction) => {
             info!("[kernel] IllegalInstruction in application.");
@@ -114,6 +116,16 @@ pub fn trap_handler() -> ! {
             );
         }
     }
+    // handle signals (handle the sent signal)
+    //println!("[K] trap_handler:: handle_signals");
+    handle_signals();
+
+    // check error signals (if error then exit)
+    if let Some((errno, msg)) = check_signals_error_of_current() {
+        println!("[kernel] {}", msg);
+        exit_current_and_run_next(errno);
+    }
+
     trap_return();
 }
 
@@ -153,7 +165,9 @@ pub fn trap_return() -> ! {
 
 #[no_mangle]
 pub fn trap_from_kernel() -> ! {
-    panic!("a trap from kernel");
+    use riscv::register::sepc;
+    println!("stval = {:#x}, sepc = {:#x}", stval::read(), sepc::read());
+    panic!("a trap {:?} from kernel!", scause::read().cause());
 }
 
 pub use context::TrapContext;
