@@ -2,19 +2,18 @@
 
 use crate::fs::{open_file, OpenFlags};
 use crate::mm::translated_ref;
+use crate::task::pid2task;
 use crate::{
     mm::{translated_refmut, translated_str},
     task::{
         add_task, current_task, current_user_token, exit_current_and_run_next,
-        suspend_current_and_run_next,
-        SignalAction, SignalFlags, MAX_SIG,
+        suspend_current_and_run_next, SignalAction, SignalFlags, MAX_SIG,
     },
     timer::get_time_ms,
 };
 use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use crate::task::pid2task;
 
 /// task exits and submit an exit code
 #[allow(unused)]
@@ -86,21 +85,21 @@ pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
     if !inner
         .children
         .iter()
-        .any(|p| pid == -1 || pid as usize == p.getpid())
+        .any(|p| pid == -1 || pid as usize == p.get_pid())
     {
         return -1;
         // ---- release current PCB
     }
     let pair = inner.children.iter().enumerate().find(|(_, p)| {
         // ++++ temporarily access child PCB exclusively
-        p.inner_exclusive_access().is_zombie() && (pid == -1 || pid as usize == p.getpid())
+        p.inner_exclusive_access().is_zombie() && (pid == -1 || pid as usize == p.get_pid())
         // ++++ release child PCB
     });
     if let Some((idx, _)) = pair {
         let child = inner.children.remove(idx);
         // confirm that child will be deallocated after being removed from children list
         assert_eq!(Arc::strong_count(&child), 1);
-        let found_pid = child.getpid();
+        let found_pid = child.get_pid();
         // ++++ temporarily access child PCB exclusively
         let exit_code = child.inner_exclusive_access().exit_code;
         // ++++ release child PCB
