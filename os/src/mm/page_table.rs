@@ -31,6 +31,8 @@ bitflags! {
         const D = 1 << 7;
     }
 }
+
+/// 页表项实例 PageTableEntry  (物理页号和全部的标志位以某种固定的格式保存在一个结构体中)
 /// 让编译器自动实现 Copy/Clone Trait
 /// 让这个类型以值语义赋值/传参时不会发生所有权转转移，而是拷贝一份新的副本。
 /// PageTable 是 usize 的一层简单的封装
@@ -63,19 +65,21 @@ impl PageTableEntry {
     pub fn flags(&self) -> PTEFlags {
         PTEFlags::from_bits(self.bits as u8).unwrap()
     }
-
+    /// 判断页表项是否合法的
     pub fn is_valid(&self) -> bool {
         (self.flags() & PTEFlags::V) != PTEFlags::empty()
     }
-
+    /// 个页表项的对应虚拟页面是否允许度
     pub fn readable(&self) -> bool {
         (self.flags() & PTEFlags::R) != PTEFlags::empty()
     }
 
+    /// 个页表项的对应虚拟页面是否允许 写
     pub fn writable(&self) -> bool {
         (self.flags() & PTEFlags::W) != PTEFlags::empty()
     }
 
+    /// 个页表项的对应虚拟页面是否允许 执行
     pub fn executable(&self) -> bool {
         (self.flags() & PTEFlags::X) != PTEFlags::empty()
     }
@@ -107,7 +111,8 @@ impl PageTable {
             frames: vec![frame],
         }
     }
-    /// Temporarily used to get arguments from user space.
+    /// from_token 可以临时创建一个专用来手动查页表的 PageTable ，它仅有一个从传入的
+    /// satp token 中得到的多级页表根节点的物理页号，它的 frames 字段为空，也即不实际控制任何资源
     pub fn from_token(satp: usize) -> Self {
         Self {
             root_ppn: PhysPageNum::from(satp & ((1usize << 44) - 1)),
@@ -118,12 +123,14 @@ impl PageTable {
     //在多级页表中找到一个虚拟页号对应的页表项的可变引用
     //如果在遍历的过程中发现有节点尚未创建，则会新建一个节点
     fn find_pte_create(&mut self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
+        // 虚拟页表中的索引
         let idxs = vpn.indexes();
-        // 当前的物理页号
+        // 当前的(根)物理页号
         let mut ppn = self.root_ppn;
         let mut result: Option<&mut PageTableEntry> = None;
         for (i, idx) in idxs.iter().enumerate() {
             // 取出当前节点的页表项数组
+            // 并根据当前级页索引找到对应的页表项
             let pte = &mut ppn.get_pte_array()[*idx];
             if i == 2 {
                 // 如果是叶子节点，直接返回该页表项的可变引用
@@ -146,6 +153,7 @@ impl PageTable {
     // 如果遍历过程中找不到合法的叶子节点直接返回 None 不会创建新节点
     fn find_pte(&self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
         let idxs = vpn.indexes();
+        // 根物理页号
         let mut ppn = self.root_ppn;
         let mut result: Option<&mut PageTableEntry> = None;
         for (i, idx) in idxs.iter().enumerate() {
@@ -176,6 +184,7 @@ impl PageTable {
     }
 
     /// Translate `VirtPageNum` to `PageTableEntry`
+    /// 调用 find_pte 来实现，如果能够找到页表项，那么它会将页表项拷贝一份并返回，否则就返回一个 None 。
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.find_pte(vpn).map(|pte| *pte)
     }

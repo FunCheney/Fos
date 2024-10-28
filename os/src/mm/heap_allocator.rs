@@ -16,11 +16,15 @@ pub fn handle_alloc_error(layout: core::alloc::Layout) -> ! {
 }
 
 /// heap space ([u8; KERNEL_HEAP_SIZE])
+/// static mut 且被零初始化的字节数组，位于内核的 .bss 段中
 static mut HEAP_SPACE: [u8; KERNEL_HEAP_SIZE] = [0; KERNEL_HEAP_SIZE];
 
 /// initiate heap allocator
 pub fn init_heap() {
+    // 给全局分配器分配一块内存用于分配
     unsafe {
+        // 被互斥锁保护的类型
+        // 在对它任何进行任何操作之前都要先获取锁以避免其他线程同时对它进行操作导致数据竞争
         HEAP_ALLOCATOR
             .lock()
             .init(HEAP_SPACE.as_ptr() as usize, KERNEL_HEAP_SIZE);

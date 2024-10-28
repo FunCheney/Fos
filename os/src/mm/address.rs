@@ -6,9 +6,13 @@ use crate::config::{PAGE_SIZE, PAGE_SIZE_BITS};
 use core::fmt::{self, Debug, Formatter};
 
 /// physical address
+/// sv39 支持的物理地址为 56 位
 const PA_WIDTH_SV39: usize = 56;
+/// 虚拟地址 39 位
 const VA_WIDTH_SV39: usize = 39;
+/// 物理地址页的宽度 44 位
 const PPN_WIDTH_SV39: usize = PA_WIDTH_SV39 - PAGE_SIZE_BITS;
+/// 虚拟地址页的宽度 27 位
 const VPN_WIDTH_SV39: usize = VA_WIDTH_SV39 - PAGE_SIZE_BITS;
 
 /// Definitions PhysAdd
@@ -22,12 +26,12 @@ pub struct PhysAddr(pub usize);
 pub struct VirtAddr(pub usize);
 
 /// physical page number
-/// 物理地址页
+/// 物理地址页号
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct PhysPageNum(pub usize);
 
 /// virtual page number
-/// 虚拟地址页
+/// 虚拟地址页号
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct VirtPageNum(pub usize);
 
@@ -55,6 +59,7 @@ impl Debug for PhysPageNum {
 
 ///  usize to PhysAddr
 /// 将一个指针 转为 物理地址
+/// 生成 PhysAddr 的时候我们仅使用 usize 较低的 56 位
 impl From<usize> for PhysAddr {
     fn from(v: usize) -> Self {
         Self(v & ((1 << PA_WIDTH_SV39) - 1))
@@ -71,6 +76,7 @@ impl From<usize> for PhysPageNum {
 
 /// usize to VirtAddr
 /// 将一个指针转为 虚拟地址
+/// 生成虚拟地址 VirtAddr 的时候仅使用 usize 较低的 39 位
 impl From<usize> for VirtAddr {
     fn from(v: usize) -> Self {
         Self(v & ((1 << VA_WIDTH_SV39) - 1))
@@ -195,6 +201,7 @@ impl From<PhysAddr> for PhysPageNum {
 }
 
 /// 物理页号转物理地址
+/// 从物理页号到物理地址的转换只需左移 12 位即可，但是物理地址需要保证它与页面大小对齐才能通过右移转换为物理页号。
 impl From<PhysPageNum> for PhysAddr {
     fn from(v: PhysPageNum) -> Self {
         // 左移12 位
@@ -203,6 +210,8 @@ impl From<PhysPageNum> for PhysAddr {
 }
 
 impl VirtPageNum {
+    /// 注意它里面包裹的 usize 可能有 27 位，也有可能有 64 − 12 = 52 位，
+    /// 但这里我们是用来在多级页表上进行遍历，因此只取出低 27 位。
     // 取出虚拟页号的三级页索引，并按照从高到底的顺序返回
     // 39 - 30 为 一级 索引页
     // 30 - 21 为 二级 索引页

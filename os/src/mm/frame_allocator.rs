@@ -60,11 +60,12 @@ pub struct StackFrameAllocator {
     current: usize,
     // 空闲内存的结束物理页号
     end: usize,
-    // recycled 已后入先出的方式保存了被回收的物理页号
+    // recycled 以后入先出的方式保存了被回收的物理页号
     recycled: Vec<usize>,
 }
 
 impl StackFrameAllocator {
+    // 需要调用 init 方法将自身的 [current, end) 初始化为可用物理页号区间
     pub fn init(&mut self, l: PhysPageNum, r: PhysPageNum) {
         self.current = l.0;
         self.end = r.0;
@@ -74,7 +75,9 @@ impl FrameAllocator for StackFrameAllocator {
     // 实现 new 方法，初始化时将区间两端设置为 0
     fn new() -> Self {
         Self {
+            // 起始端
             current: 0,
+            // 结束端
             end: 0,
             // 创建一个新的向量
             recycled: Vec::new(),
@@ -86,6 +89,7 @@ impl FrameAllocator for StackFrameAllocator {
         if let Some(ppn) = self.recycled.pop() {
             Some(ppn.into())
         } else if self.current == self.end {
+            // 即 recycled 为空且 current == end 。为了涵盖这种情况，alloc 的返回值被 Option 包裹
             // 如果 current 与 end 相等返回 None
             None
         } else {
@@ -98,7 +102,6 @@ impl FrameAllocator for StackFrameAllocator {
     }
     fn dealloc(&mut self, ppn: PhysPageNum) {
         let ppn = ppn.0;
-        // validity check
         // 该页面之前一定分出去过，物理页号一定小于 current
         // 该页面正在回收状态，物理也号不能在 recycled 中找到
         if ppn >= self.current || self.recycled.iter().any(|&v| v == ppn) {
@@ -125,6 +128,7 @@ pub fn init_frame_allocator() {
     extern "C" {
         fn ekernel();
     }
+    // 物理页帧全局管理器 FRAME_ALLOCATOR 初始化
     FRAME_ALLOCATOR.exclusive_access().init(
         // 上取整获取可用的物理页号
         PhysAddr::from(ekernel as usize).ceil(),
@@ -133,9 +137,11 @@ pub fn init_frame_allocator() {
     );
 }
 
-/// allocate a frame
+/// 提供给其他模块使用 分配一个物理页帧
 /// 返回的值类型不是 FrameAllocator 要求的物理页号 PhysPageNum
 /// 而是将其进一步包装的 FrameTracker
+/// 这里借用了 RAII 的思想，将一个物理页帧的生命周期绑定到一个
+/// FrameTracker 变量上，当一个 FrameTracker 被创建的时候，我们需要从 FRAME_ALLOCATOR 中分配一个物理页帧：
 pub fn frame_alloc() -> Option<FrameTracker> {
     FRAME_ALLOCATOR
         .exclusive_access()
@@ -143,7 +149,7 @@ pub fn frame_alloc() -> Option<FrameTracker> {
         .map(FrameTracker::new)
 }
 
-/// deallocate a frame
+/// 提供给其他模块使用 释放一个物理页帧
 pub fn frame_dealloc(ppn: PhysPageNum) {
     FRAME_ALLOCATOR.exclusive_access().dealloc(ppn);
 }
