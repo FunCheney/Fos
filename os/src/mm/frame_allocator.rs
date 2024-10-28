@@ -1,5 +1,6 @@
 //! Implementation of [`FrameAllocator`] which
 //! controls all the frames in the operating system.
+//! 操作系统内核能够以物理页帧为单位分配和回收内存
 
 use super::{PhysAddr, PhysPageNum};
 use crate::config::MEMORY_END;

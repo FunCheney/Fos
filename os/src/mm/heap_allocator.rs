@@ -1,4 +1,5 @@
 //! The global allocator
+//! 操作系统能够在虚拟内存中以各种了粒度大小来动态分配内存资源
 
 use crate::config::KERNEL_HEAP_SIZE;
 use buddy_system_allocator::LockedHeap;

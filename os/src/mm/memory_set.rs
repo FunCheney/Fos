@@ -41,7 +41,8 @@ pub fn kernel_token() -> usize {
     KERNEL_SPACE.exclusive_access().token()
 }
 
-/// memory set structure, controls virtual-memory space
+/// MemorySet 用来管理虚拟地址空间
+///
 /// 地址空间：一些列有关联的不一定连续的逻辑段
 /// 这种关联一般是指这些逻辑段组成的虚拟内存空间与一个运行的程序绑定
 /// 即这个运行的程序对代码和数据的直接访问范围限制在它关联的虚拟地址空间之内。
@@ -51,6 +52,8 @@ pub struct MemorySet {
     page_table: PageTable,
     // 逻辑段向量，挂着对应逻辑段中的数据所在的物理页帧，
     // 这两部分合在一起构成了一个地址空间所需的所有物理页帧
+    // 在一个虚拟地址空间中，有代码段，数据段等不同属性且不一定连续的子空间，它们通过一个重要的
+    // 数据结构 MapArea 来表示和管理
     areas: Vec<MapArea>,
 }
 

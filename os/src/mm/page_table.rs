@@ -1,4 +1,7 @@
 //! Implementation of [`PageTableEntry`] and [`PageTable`].
+//!
+//! 页表项的数据结构表示，以及多级页表的起始物理页帧位置和整个所占用的物理页帧的记录
+//! 页表中的页表项的索引其实是虚拟地址中的虚拟页号，页表项的重要内容是物理地址的物理页帧号
 
 use super::{frame_alloc, FrameTracker, PhysAddr, PhysPageNum, StepByOne, VirtAddr, VirtPageNum};
 use alloc::string::String;

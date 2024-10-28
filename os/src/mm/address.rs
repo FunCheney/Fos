@@ -1,4 +1,5 @@
 //! Implementation of physical and virtual address and page number.
+//! 提供灵活地在虚拟地址、物理地址、虚拟页号、物理页号之间进行各种转换方法
 
 use super::PageTableEntry;
 use crate::config::{PAGE_SIZE, PAGE_SIZE_BITS};
