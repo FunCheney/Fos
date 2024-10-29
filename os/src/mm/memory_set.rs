@@ -394,7 +394,11 @@ impl MemorySet {
 /// 包含的所有虚拟页都以一种相同的方式映射到物理页帧，具有可读、可写、可执行等属性。
 pub struct MapArea {
     // 描述一段虚拟页号的连续空间，表示该逻辑段在地址区间中的长度和位置
+    // 它是一个迭代器，可以使用 Rust 的语法糖 for-loop 进行迭代
     vpn_range: VPNRange,
+    // 当逻辑段采用 MapType::Framed 方式映射到物理内存的时候，data_frames 是一个保存了该逻辑段内
+    // 的每个虚拟页面和它被映射到的物理页帧 FrameTracker 的一个键值对容器 BTreeMap 中，这些物理页帧
+    // 被用来存放实际内存数据而不是作为多级页表中的中间节点
     data_frames: BTreeMap<VirtPageNum, FrameTracker>,
     // 描述该逻辑段内的所有虚拟页面映射到物理页帧的同一种方式
     // 恒等映射: 主要为内核地址空间服务
@@ -543,8 +547,10 @@ pub enum MapType {
     Framed,
 }
 
+
 bitflags! {
     /// map permission corresponding to that in pte: `R W X U`
+    /// 控制该逻辑段的访问方式，它是页表项标志位 PTEFlags 的一个子集
     pub struct MapPermission: u8 {
         const R = 1 << 1;
         const W = 1 << 2;

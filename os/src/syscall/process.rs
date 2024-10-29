@@ -46,6 +46,7 @@ pub fn sys_fork() -> isize {
     trap_cx.x[10] = 0;
     // add new task to scheduler
     add_task(new_task);
+    // 子进程的 id
     new_pid as isize
 }
 
