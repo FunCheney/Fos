@@ -1,3 +1,5 @@
+//! bitMap 位图抽象
+
 use super::{get_block_cache, BlockDevice, BLOCK_SZ};
 use alloc::sync::Arc;
 /// A bitmap block

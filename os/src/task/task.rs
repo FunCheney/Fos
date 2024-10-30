@@ -64,6 +64,7 @@ pub struct TaskControlBlockInner {
     // 它的任务块中，并等待它的父进程通过 waitpid 的方式回收它的资源，收集它的 pid 以及退出码
     pub exit_code: i32,
     // 文件描述符表
+    // 保存了若干实现了 File Trait 的文件，由于采用 Rust 的 Trait Object 动态分发
     pub fd_table: Vec<Option<Arc<dyn File + Send + Sync>>>,
 
     pub signals: SignalFlags,

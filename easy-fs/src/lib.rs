@@ -2,6 +2,7 @@
 #![no_std]
 #![deny(missing_docs)]
 extern crate alloc;
+extern crate log;
 mod bitmap;
 mod block_cache;
 mod block_dev;

@@ -1,3 +1,5 @@
+//! BlockCache 代表一个被管理起来的缓冲区
+
 use super::{BlockDevice, BLOCK_SZ};
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
@@ -77,7 +79,9 @@ impl Drop for BlockCache {
 /// Use a block cache of 16 blocks
 const BLOCK_CACHE_SIZE: usize = 16;
 
+/// 块缓存管理器
 pub struct BlockCacheManager {
+    // 对 BlockCache 进行管理
     queue: VecDeque<(usize, Arc<Mutex<BlockCache>>)>,
 }
 

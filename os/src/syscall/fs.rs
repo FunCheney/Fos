@@ -6,6 +6,7 @@ use crate::mm::{translated_byte_buffer, translated_refmut, translated_str, UserB
 use crate::task::{current_task, current_user_token};
 use alloc::sync::Arc;
 
+/// 写文件，需要访问当前进程的文件描述符表
 pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
     let token = current_user_token();
     let task = current_task().unwrap();
@@ -13,13 +14,17 @@ pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
     if fd >= inner.fd_table.len() {
         return -1;
     }
+    // 根据文件描述符获取在文件描述符表中的文件
     if let Some(file) = &inner.fd_table[fd] {
+        // 判断文件是否可写
         if !file.writable() {
             return -1;
         }
+        // clone文件
         let file = file.clone();
         // release current task TCB manually to avoid multi-borrow
         drop(inner);
+        // 调用 File trait 的 write 接口
         file.write(UserBuffer::new(translated_byte_buffer(token, buf, len))) as isize
     } else {
         -1
