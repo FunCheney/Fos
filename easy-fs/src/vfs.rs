@@ -8,7 +8,7 @@ use alloc::vec::Vec;
 use spin::{Mutex, MutexGuard};
 /// Virtual filesystem layer over easy-fs
 pub struct Inode {
-    block_id: usize,
+    /**/block_id: usize,
     block_offset: usize,
     fs: Arc<Mutex<EasyFileSystem>>,
     block_device: Arc<dyn BlockDevice>,

@@ -149,6 +149,9 @@ lazy_static! {
         Mutex::new(BlockCacheManager::new());
 }
 /// Get the block cache corresponding to the given block id and block device
+/// 提供给其他模块使用，获取块缓存
+/// 返回 Arc<Mutex<BlockCahe>> , 调用方通过 .lock() 获取互斥锁 Mutex，才能对里面的 BlockCache 进行操作
+/// 通过 read/ modify 访问缓冲区里面的数据
 pub fn get_block_cache(
     block_id: usize,
     block_device: Arc<dyn BlockDevice>,

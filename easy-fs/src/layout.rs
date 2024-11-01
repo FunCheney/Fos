@@ -21,13 +21,21 @@ const INDIRECT1_BOUND: usize = DIRECT_BOUND + INODE_INDIRECT1_COUNT;
 #[allow(unused)]
 const INDIRECT2_BOUND: usize = INDIRECT1_BOUND + INODE_INDIRECT2_COUNT;
 /// Super block of a filesystem
+/// 超级块
+///  是一个磁盘上数据结构，它就存放在磁盘上编号为 0 的块的起始处。
 #[repr(C)]
 pub struct SuperBlock {
+    /// 魔数，用于文件系统合法性的校验
     magic: u32,
+    /// total_block 给出文件系统的总块数
     pub total_blocks: u32,
+    /// 索引节点位图 多少个块
     pub inode_bitmap_blocks: u32,
+    /// 索引节点区域 多少个块
     pub inode_area_blocks: u32,
+    /// 数据块位图 多少个块
     pub data_bitmap_blocks: u32,
+    /// 数据块区域 多少个块
     pub data_area_blocks: u32,
 }
 
@@ -45,6 +53,8 @@ impl Debug for SuperBlock {
 
 impl SuperBlock {
     /// Initialize a super block
+    /// 创建 easy-fs 的时候对其初始化
+    /// 各个区域的块数是以参数的形式传入进来的，它们的划分是更上层的磁盘块管理器需要完成的工作。
     pub fn initialize(
         &mut self,
         total_blocks: u32,
@@ -63,6 +73,7 @@ impl SuperBlock {
         }
     }
     /// Check if a super block is valid using efs magic
+    /// 通过魔数判断超级块所在的文件系统是否合法
     pub fn is_valid(&self) -> bool {
         self.magic == EFS_MAGIC
     }
