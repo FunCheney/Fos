@@ -7,15 +7,22 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use spin::{Mutex, MutexGuard};
 /// Virtual filesystem layer over easy-fs
+/// Inode 暴露给文件系统调用者，能构直接对文件和目录进行操作
 pub struct Inode {
-    /**/block_id: usize,
+    /// 该 Inode 对应的 DiskInode 保存在磁盘上的 block_id
+    block_id: usize,
+    /// 该 Inode 对应的 DiskInode 保存在磁盘上的 block_offset
     block_offset: usize,
+    /// fs 是指向 EasyFileSystem 的一个指针
     fs: Arc<Mutex<EasyFileSystem>>,
+    /// 对应的设备
     block_device: Arc<dyn BlockDevice>,
 }
 
 impl Inode {
     /// Create a vfs inode
+    /// root_inode 的初始化，是在调用 Inode::new 时将传入的 inode_id 设置为 0 ，
+    /// 因为根目录对应于文件系统中第一个分配的 inode
     pub fn new(
         block_id: u32,
         block_offset: usize,
@@ -30,6 +37,9 @@ impl Inode {
         }
     }
     /// Call a function over a disk inode to read it
+    /// 获取根目录的 Inode
+    /// EasyFileSystem 目前仅支持绝对路径，对于任何文件/目录的索引都必须从根目录开始向下逐级进行。
+    /// 等到索引完成之后，EasyFileSystem 才能对文件/目录进行操作
     fn read_disk_inode<V>(&self, f: impl FnOnce(&DiskInode) -> V) -> V {
         get_block_cache(self.block_id, Arc::clone(&self.block_device))
             .lock()
