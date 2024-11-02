@@ -39,9 +39,9 @@ impl BlockCache {
     }
     /// 它可以获取缓冲区中的位于偏移量 offset 的一个类型为 T 的磁盘上数据结构的不可变引用
     pub fn get_ref<T>(&self, offset: usize) -> &T
-        where
+    where
         // 该泛型方法的 Trait Bound 限制类型 T 必须是一个编译时已知大小的类型
-            T: Sized,
+        T: Sized,
     {
         // 在编译时获取类型 T 的大小
         let type_size = core::mem::size_of::<T>();
@@ -53,8 +53,8 @@ impl BlockCache {
 
     /// get_mut 会获取磁盘上数据结构的可变引用，由此可以对数据结构进行修改
     pub fn get_mut<T>(&mut self, offset: usize) -> &mut T
-        where
-            T: Sized,
+    where
+        T: Sized,
     {
         let type_size = core::mem::size_of::<T>();
         assert!(offset + type_size <= BLOCK_SZ);
@@ -108,8 +108,7 @@ impl BlockCacheManager {
         block_id: usize,
         block_device: Arc<dyn BlockDevice>,
     ) -> Arc<Mutex<BlockCache>> {
-        if let Some(pair) = self.queue.iter().
-            find(|pair| pair.0 == block_id) {
+        if let Some(pair) = self.queue.iter().find(|pair| pair.0 == block_id) {
             Arc::clone(&pair.1)
         } else {
             // 判断管理器保存的块缓存数量是否已经达到上限

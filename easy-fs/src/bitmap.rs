@@ -20,6 +20,8 @@ pub struct Bitmap {
 }
 
 /// Decompose bits into (block_pos, bits64_pos, inner_pos)
+/// 将 bit 编号分解为区域中的块编号 block_pos, 块内的组编号 bits64_pos，
+/// 以及组内编号 inner_pos 三元组
 fn decomposition(mut bit: usize) -> (usize, usize, usize) {
     let block_pos = bit / BLOCK_BITS;
     bit %= BLOCK_BITS;
@@ -38,13 +40,24 @@ impl Bitmap {
     /// Allocate a new block from a block device
     /// 分配一个 bit
     pub fn alloc(&self, block_device: &Arc<dyn BlockDevice>) -> Option<usize> {
+        // 枚举区域中的每一个块，在每个块中以 bit 组（每组64bits）为单位进行遍历
         for block_id in 0..self.blocks {
+            // 获取缓块缓存
             let pos = get_block_cache(
+                // block_id + 加上区域起始块编号
                 block_id + self.start_block_id as usize,
                 Arc::clone(block_device),
             )
+            // 获取缓存块的互斥锁，对缓存块进行访问
             .lock()
             .modify(0, |bitmap_block: &mut BitmapBlock| {
+                // offset 为 0，这是因为整个块上只有一个 BitmapBlock，他的大小正好是 512 字节
+                // 传入的类型是 &mut BitmapBlock
+                //
+                // 尝试在 bitmap_block 中找到一个空闲的 bit 并返回其位置
+                //遍历每 64 bits 构成的组（一个 u64 ），如果它并没有达到 u64::MAX（即 2^64 − 1 ）
+                //则通过 u64::trailing_ones 找到最低的一个 0 并置为 1 。如果能够找到的话，
+                //bit 组的编号将保存在变量 bits64_pos 中，而分配的 bit 在组内的位置将保存在变量 inner_pos 中
                 if let Some((bits64_pos, inner_pos)) = bitmap_block
                     .iter()
                     .enumerate()
