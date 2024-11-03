@@ -66,7 +66,10 @@ pub fn sys_exec(path: *const u8, mut args: *const usize) -> isize {
         }
     }
 
+    // 当执行获取应用的 ELF 数据的操作时，首先调用 open_file 函数
     if let Some(app_inode) = open_file(path.as_str(), OpenFlags::RDONLY) {
+        // 将文件的数据全部读到一个 all_data 向量中
+        // 就可以从向量 all_data 中拿到应用中的 ELF 数据，当解析完毕并创建完应用地址空间后该向量将会被回收。
         let all_data = app_inode.read_all();
         let task = current_task().unwrap();
         task.exec(all_data.as_slice(), args_vec);

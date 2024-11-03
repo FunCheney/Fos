@@ -65,6 +65,14 @@ pub struct TaskControlBlockInner {
     pub exit_code: i32,
     // 文件描述符表
     // 保存了若干实现了 File Trait 的文件，由于采用 Rust 的 Trait Object 动态分发
+    // Vec 的动态长度特性使得我们无需设置一个固定的文件描述符数量上限，我们可以更加灵活的使用内存，而不必操心内存管理问题；
+    // Option 使得我们可以区分一个文件描述符当前是否空闲，当它是 None 的时候是空闲的，而 Some 则代表它已被占用；
+    // Arc 首先提供了共享引用能力。可能会有多个进程共享同一个文件对它进行读写。
+    //     此外被它包裹的内容会被放到内核堆而不是栈上，于是它便不需要在编译期有着确定的大小；
+    // dyn 关键字表明 Arc 里面的类型实现了 File/Send/Sync 三个 Trait ，但是编译期无法知道它具体是
+    // 哪个类型（可能是任何实现了 File Trait 的类型如 Stdin/Stdout ，故而它所占的空间大小自然也无
+    // 法确定），需要等到运行时才能知道它的具体类型，对于一些抽象方法的调用也是在那个时候才能找到
+    // 该类型实现的方法并跳转过去。
     pub fd_table: Vec<Option<Arc<dyn File + Send + Sync>>>,
 
     pub signals: SignalFlags,
