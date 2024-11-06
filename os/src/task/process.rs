@@ -21,14 +21,32 @@ pub struct ProcessControlBlock {
 }
 
 pub struct ProcessControlBlockInner {
+    /// 进程状态是否为僵尸进程
     pub is_zombie: bool,
+    /// 进程的地址空间
     pub memory_set: MemorySet,
+    /// 指向当前进程的父进程
     pub parent: Option<Weak<ProcessControlBlock>>,
+    // 将当前进程的所有子进程的任务控制块，以 Arc 的方式保存在一个向量中
     pub children: Vec<Arc<ProcessControlBlock>>,
+    // 当进程调用 exit 系统调用，或者执行出错，由内核终止的时候，保存 exit_code 在
+    // 它的任务块中，并等待它的父进程通过 waitpid 的方式回收它的资源，收集它的 pid 以及退出码
     pub exit_code: i32,
+    // 文件描述符表
+    // 保存了若干实现了 File Trait 的文件，由于采用 Rust 的 Trait Object 动态分发
+    // Vec 的动态长度特性使得我们无需设置一个固定的文件描述符数量上限，我们可以更加灵活的使用内存，而不必操心内存管理问题；
+    // Option 使得我们可以区分一个文件描述符当前是否空闲，当它是 None 的时候是空闲的，而 Some 则代表它已被占用；
+    // Arc 首先提供了共享引用能力。可能会有多个进程共享同一个文件对它进行读写。
+    //     此外被它包裹的内容会被放到内核堆而不是栈上，于是它便不需要在编译期有着确定的大小；
+    // dyn 关键字表明 Arc 里面的类型实现了 File/Send/Sync 三个 Trait ，但是编译期无法知道它具体是
+    // 哪个类型（可能是任何实现了 File Trait 的类型如 Stdin/Stdout ，故而它所占的空间大小自然也无
+    // 法确定），需要等到运行时才能知道它的具体类型，对于一些抽象方法的调用也是在那个时候才能找到
+    // 该类型实现的方法并跳转过去。
     pub fd_table: Vec<Option<Arc<dyn File + Send + Sync>>>,
     pub signals: SignalFlags,
+    /// 进程控制块中设置一个向量保存进程下所有线程的任务控制块
     pub tasks: Vec<Option<Arc<TaskControlBlock>>>,
+    /// 进程为进程内的线程分配资源的通用资源分配器
     pub task_res_allocator: RecycleAllocator,
     pub mutex_list: Vec<Option<Arc<dyn Mutex>>>,
     pub semaphore_list: Vec<Option<Arc<Semaphore>>>,
@@ -74,9 +92,12 @@ impl ProcessControlBlock {
 
     pub fn new(elf_data: &[u8]) -> Arc<Self> {
         // memory_set with elf program headers/trampoline/trap context/user stack
+        // 解析传入的 elf 格式数据结构，构造应用的地址空间 memory_set 并获取其他信息
         let (memory_set, ustack_base, entry_point) = MemorySet::from_elf(elf_data);
         // allocate a pid
+        // 分配进程id
         let pid_handle = pid_alloc();
+        // 创建进程控制块 PCB
         let process = Arc::new(Self {
             pid: pid_handle,
             inner: unsafe {
@@ -86,12 +107,14 @@ impl ProcessControlBlock {
                     parent: None,
                     children: Vec::new(),
                     exit_code: 0,
+
+                    // 当一个进程被创建的时候，内核会默认为其打开三个缺省就存在的文件：
                     fd_table: vec![
-                        // 0 -> stdin
+                        // 0 -> stdin 文件描述符 0； 标准输入
                         Some(Arc::new(Stdin)),
-                        // 1 -> stdout
+                        // 1 -> stdout 文件描述符 1: 标准输出
                         Some(Arc::new(Stdout)),
-                        // 2 -> stderr
+                        // 2 -> stderr 文件描述符 2: 标准错误的输出
                         Some(Arc::new(Stdout)),
                     ],
                     signals: SignalFlags::empty(),
@@ -104,12 +127,14 @@ impl ProcessControlBlock {
             },
         });
         // create a main thread, we should allocate ustack and trap_cx here
+        // 创建主线程的 TaskControlBlock
         let task = Arc::new(TaskControlBlock::new(
             Arc::clone(&process),
             ustack_base,
             true,
         ));
         // prepare trap_cx of main thread
+        // 获取所有信息并填充主线程的 Trap 上下文
         let task_inner = task.inner_exclusive_access();
         let trap_cx = task_inner.get_trap_cx();
         let ustack_top = task_inner.res.as_ref().unwrap().ustack_top();
@@ -123,11 +148,14 @@ impl ProcessControlBlock {
             trap_handler as usize,
         );
         // add main thread to the process
+        // 将主线程插入到进程的线程列表中，此时列表为空，可直接插入
         let mut process_inner = process.inner_exclusive_access();
         process_inner.tasks.push(Some(Arc::clone(&task)));
         drop(process_inner);
+        // 维护 pid 与 ProcessControlBlock 之间的映射关系
         insert_into_pid2process(process.getpid(), Arc::clone(&process));
         // add main thread to scheduler
+        // 将主线程加入到任务管理器使它可以被调度
         add_task(task);
         process
     }
@@ -149,8 +177,13 @@ impl ProcessControlBlock {
         task_inner.trap_cx_ppn = task_inner.res.as_mut().unwrap().trap_cx_ppn();
         // push arguments on user stack
         let mut user_sp = task_inner.res.as_mut().unwrap().ustack_top();
+
+        // push arguments on user stack
+        // 将命令行参数 压栈
+        // 数组中的每个元素都指向一个用户栈更低处的命令行参数字符串的起始地址
         user_sp -= (args.len() + 1) * core::mem::size_of::<usize>();
         let argv_base = user_sp;
+        // 最开始我们只是分配空间，具体的值要等到字符串被放到用户栈上之后才能确定更新
         let mut argv: Vec<_> = (0..=args.len())
             .map(|arg| {
                 translated_refmut(
@@ -159,18 +192,26 @@ impl ProcessControlBlock {
                 )
             })
             .collect();
+
+        // 将传入的 args 中的字符串压入到用户栈中
+        // 我们在用户栈上预留空间之后逐字节进行复制
         *argv[args.len()] = 0;
         for i in 0..args.len() {
             user_sp -= args[i].len() + 1;
             *argv[i] = user_sp;
             let mut p = user_sp;
             for c in args[i].as_bytes() {
+                // translated_str 从应用地址空间取出的，它的末尾不包含 \0 。
+                // 为了应用能知道每个字符串的长度，我们需要手动在末尾加入 \0
                 *translated_refmut(new_token, p as *mut u8) = *c;
                 p += 1;
             }
             *translated_refmut(new_token, p as *mut u8) = 0;
         }
         // make the user_sp aligned to 8B for k210 platform
+        // 将 user_sp 以 8 字节对齐
+        // 这是因为命令行参数的长度不一，很有可能压入之后 user_sp 没有对齐到 8 字节，
+        // 那么在 K210 平台上在访问用户栈的时候就会触发访存不对齐的异常。在 Qemu 平台上则并不存在这个问题
         user_sp -= user_sp % core::mem::size_of::<usize>();
         // initialize trap_cx
         let mut trap_cx = TrapContext::app_init_context(
@@ -203,6 +244,7 @@ impl ProcessControlBlock {
             }
         }
         // create child process pcb
+        // 创建子进程的 PCB
         let child = Arc::new(Self {
             pid,
             inner: unsafe {
@@ -225,6 +267,8 @@ impl ProcessControlBlock {
         // add child
         parent.children.push(Arc::clone(&child));
         // create main thread of child process
+        //创建子进程的主线程控制块，注意它继承了父进程的 ustack_base ，
+        //并且不用重新分配用户栈和 Trap 上下文。将主线程加入到子进程中
         let task = Arc::new(TaskControlBlock::new(
             Arc::clone(&child),
             parent
@@ -245,10 +289,13 @@ impl ProcessControlBlock {
         // modify kstack_top in trap_cx of this thread
         let task_inner = task.inner_exclusive_access();
         let trap_cx = task_inner.get_trap_cx();
+        //子进程基本上继承父进程的主线程Trap 上下文，但是其中的内核地址需修改
         trap_cx.kernel_sp = task.kstack.get_top();
         drop(task_inner);
+        // 添加 pid - pcb 之间映射
         insert_into_pid2process(child.getpid(), Arc::clone(&child));
         // add this thread to scheduler
+        // 将子进程的主线程加入到任务调度器
         add_task(task);
         child
     }

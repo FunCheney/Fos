@@ -17,8 +17,10 @@ use crate::sbi::shutdown;
 pub use action::{SignalAction, SignalActions};
 use alloc::sync::Arc;
 pub use context::TaskContext;
+pub use id::{kstack_alloc, pid_alloc, KernelStack, PidHandle, IDLE_PID};
 use lazy_static::*;
 pub use manager::{add_task, fetch_task, pid2task};
+use process::ProcessControlBlock;
 pub use processor::{
     current_task, current_trap_cx, current_user_token, run_tasks, schedule, take_current_task,
 };
@@ -86,7 +88,7 @@ lazy_static! {
         // 解析 elf 文件，并建立应用的地址空间，内核栈，形成一个就绪的进程控制块
         let inode = open_file("initproc", OpenFlags::RDONLY).unwrap();
         let v = inode.read_all();
-        TaskControlBlock::new(v.as_slice())
+        ProcessControlBlock::new(v.as_slice())
     });
 }
 

@@ -42,16 +42,20 @@ impl TaskManager {
 
 // 实例化 TASK_MANAGER
 lazy_static! {
+    // 全局的任务管理器
     pub static ref TASK_MANAGER: UPSafeCell<TaskManager> =
         unsafe { UPSafeCell::new(TaskManager::new()) };
+    // 全局 PID-进程控制块映射
     pub static ref PID2TCB: UPSafeCell<BTreeMap<usize, Arc<ProcessControlBlock>>> =
         unsafe { UPSafeCell::new(BTreeMap::new()) };
 }
 
+/// 将线程添加到就绪队列
 pub fn add_task(task: Arc<TaskControlBlock>) {
     TASK_MANAGER.exclusive_access().add(task);
 }
 
+///
 pub fn wakeup_task(task: Arc<TaskControlBlock>) {
     let mut task_inner = task.inner_exclusive_access();
     task_inner.task_status = TaskStatus::Ready;
@@ -59,10 +63,12 @@ pub fn wakeup_task(task: Arc<TaskControlBlock>) {
     add_task(task);
 }
 
+/// 将线程移除就绪队列
 pub fn remove_task(task: Arc<TaskControlBlock>) {
     TASK_MANAGER.exclusive_access().remove(task);
 }
 
+/// 从 就 绪 队 列 中 选 出 一 个 线 程 分 配 CPU 资 源
 pub fn fetch_task() -> Option<Arc<TaskControlBlock>> {
     TASK_MANAGER.exclusive_access().fetch()
 }
