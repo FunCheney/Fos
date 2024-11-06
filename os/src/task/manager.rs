@@ -1,6 +1,7 @@
 use alloc::collections::BTreeMap;
 use alloc::{collections::vec_deque::VecDeque, sync::Arc};
 
+use super::task::TaskStatus;
 use super::TaskControlBlock;
 
 use crate::sync::UPSafeCell;
@@ -55,7 +56,7 @@ pub fn add_task(task: Arc<TaskControlBlock>) {
     TASK_MANAGER.exclusive_access().add(task);
 }
 
-///
+/// 唤醒线程
 pub fn wakeup_task(task: Arc<TaskControlBlock>) {
     let mut task_inner = task.inner_exclusive_access();
     task_inner.task_status = TaskStatus::Ready;

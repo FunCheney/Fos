@@ -224,15 +224,26 @@ pub fn sys_gettid() -> isize {
 pub fn sys_waittid(tid: usize) -> isize {
     syscall(SYSCALL_WAITTID, [tid, 0, 0])
 }
-
+/// 功 能: 为 当 前 进 程 新 增 一 把 互 斥 锁
+/// 参 数: blocking 为 true 表 示 互 斥 锁 基 于 阻 塞 机 制 实 现
+/// 否 则 表 示 互 斥 锁 基 于 类 似 yield 的 方 法 实 现
+/// 返 回 值: 假 设 该 操 作 必 定 成 功 ， 返 回 创 建 的 锁 的 ID
+/// syscall ID: 1010
 pub fn sys_mutex_create(blocking: bool) -> isize {
     syscall(SYSCALL_MUTEX_CREATE, [blocking as usize, 0, 0])
 }
 
+/// 功能: 当前线程尝试获取所属进程的一把互斥锁
+/// 参数: id 表示要获取锁的id
+/// 返回值: 0
+/// syscall ID: 1011
 pub fn sys_mutex_lock(id: usize) -> isize {
     syscall(SYSCALL_MUTEX_LOCK, [id, 0, 0])
 }
-
+/// 功能: 当前线程尝试释放所属进程的一把互斥锁
+/// 参数: id 表示要释放锁的 ID
+/// 返回值: 0
+/// syscall Id: 1012
 pub fn sys_mutex_unlock(id: usize) -> isize {
     syscall(SYSCALL_MUTEX_UNLOCK, [id, 0, 0])
 }

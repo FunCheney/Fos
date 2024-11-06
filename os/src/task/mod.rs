@@ -19,14 +19,17 @@ use alloc::sync::Arc;
 pub use context::TaskContext;
 pub use id::{kstack_alloc, pid_alloc, KernelStack, PidHandle, IDLE_PID};
 use lazy_static::*;
-pub use manager::{add_task, fetch_task, pid2task};
+use manager::remove_task;
+pub use manager::{
+    add_task, fetch_task, pid2process, pid2task, remove_from_pid2process, remove_task, wakeup_task,
+};
 use process::ProcessControlBlock;
 pub use processor::{
     current_task, current_trap_cx, current_user_token, run_tasks, schedule, take_current_task,
 };
 pub use signal::{SignalFlags, MAX_SIG};
 use switch::__switch;
-use task::{TaskControlBlock, TaskStatus};
+pub use task::{TaskControlBlock, TaskStatus};
 
 pub fn suspend_current_and_run_next() {
     let task = take_current_task().unwrap();
@@ -35,6 +38,15 @@ pub fn suspend_current_and_run_next() {
     task_inner.task_status = TaskStatus::Ready;
     drop(task_inner);
     add_task(task);
+    schedule(task_cx_ptr);
+}
+
+pub fn block_current_and_run_next() {
+    let task = take_current_task().unwrap();
+    let mut task_inner = task.inner_exclusive_access();
+    let task_cx_ptr = &mut task_inner.task_cx as *mut TaskContext;
+    task_inner.task_status = TaskStatus::Blocked;
+    drop(task_inner);
     schedule(task_cx_ptr);
 }
 
@@ -221,4 +233,10 @@ pub fn handle_signals() {
         }
         suspend_current_and_run_next();
     }
+}
+
+/// 移除阻塞队列中的线程
+pub fn remove_inactive_task(task: Arc<TaskControlBlock>) {
+    remove_task(Arc::clone(&task));
+    remove_timer(Arc::clone(&task));
 }

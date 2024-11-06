@@ -48,6 +48,8 @@ pub struct ProcessControlBlockInner {
     pub tasks: Vec<Option<Arc<TaskControlBlock>>>,
     /// 进程为进程内的线程分配资源的通用资源分配器
     pub task_res_allocator: RecycleAllocator,
+    // 使用 Vec<Option<T>> 构造一个可空槽位且槽位数可以扩展的互斥锁表
+    // 表中每个元素都实现了 Mutex Trait, 是一种互斥锁
     pub mutex_list: Vec<Option<Arc<dyn Mutex>>>,
     pub semaphore_list: Vec<Option<Arc<Semaphore>>>,
     pub condvar_list: Vec<Option<Arc<Condvar>>>,

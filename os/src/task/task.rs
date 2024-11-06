@@ -1,22 +1,10 @@
 //! Types related to task manager
 
-use super::{
-    id::{pid_alloc, KernelStack, PidHandle},
-    SignalActions, SignalFlags, TaskContext,
-};
-use crate::fs::{File, Stdin, Stdout};
-use crate::{
-    config::TRAP_CONTEXT,
-    mm::{translated_refmut, MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE},
-    sync::UPSafeCell,
-    trap::{trap_handler, TrapContext},
-};
-use alloc::string::String;
-use alloc::vec;
-use alloc::{
-    sync::{Arc, Weak},
-    vec::Vec,
-};
+use super::id::TaskUserRes;
+use super::{kstack_alloc, KernelStack, ProcessControlBlock, TaskContext};
+use crate::trap::TrapContext;
+use crate::{mm::PhysPageNum, sync::UPSafeCell};
+use alloc::sync::{Arc, Weak};
 use core::cell::RefMut;
 
 pub struct TaskControlBlock {
