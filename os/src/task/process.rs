@@ -51,6 +51,9 @@ pub struct ProcessControlBlockInner {
     // 使用 Vec<Option<T>> 构造一个可空槽位且槽位数可以扩展的互斥锁表
     // 表中每个元素都实现了 Mutex Trait, 是一种互斥锁
     pub mutex_list: Vec<Option<Arc<dyn Mutex>>>,
+    /// 信号量也是一种进程内的资源
+    /// 一个进程内也有多个不同的信号量
+    /// 将信号量表加入到进程控制块中
     pub semaphore_list: Vec<Option<Arc<Semaphore>>>,
     pub condvar_list: Vec<Option<Arc<Condvar>>>,
 }

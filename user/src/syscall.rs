@@ -248,14 +248,26 @@ pub fn sys_mutex_unlock(id: usize) -> isize {
     syscall(SYSCALL_MUTEX_UNLOCK, [id, 0, 0])
 }
 
+/// 功能: 为当前进程新增一个信号量
+/// 参数: res_count 表示该信号量的初始资源可用数量，即 N，为一个非负数
+/// 返回值: 0
+/// syscall ID: 1020
 pub fn sys_semaphore_create(res_count: usize) -> isize {
     syscall(SYSCALL_SEMAPHORE_CREATE, [res_count, 0, 0])
 }
 
+/// 功能: 对当前进程中的信号量进行 V 操作 (归还)
+/// 参数: sem_id 表示要进行 V 操作的信号量Id
+/// 返回值: 假定操作必成功，返回 0
+/// syscall ID: 1021
 pub fn sys_semaphore_up(sem_id: usize) -> isize {
     syscall(SYSCALL_SEMAPHORE_UP, [sem_id, 0, 0])
 }
 
+/// 功能: 对当前进程中的信号量进行 P 操作 (尝试占用)
+/// 参数: sem_id 表示要进行 V 操作的信号量Id
+/// 返回值: 假定操作必成功.返回 0
+/// syscall ID: 1022
 pub fn sys_semaphore_down(sem_id: usize) -> isize {
     syscall(SYSCALL_SEMAPHORE_DOWN, [sem_id, 0, 0])
 }
