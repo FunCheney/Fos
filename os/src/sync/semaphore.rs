@@ -1,4 +1,4 @@
-use alloc::{collections::vec_deque::VecDeque, sync::Arc, task};
+use alloc::{collections::vec_deque::VecDeque, sync::Arc};
 
 use crate::task::{block_current_and_run_next, current_task, wakeup_task, TaskControlBlock};
 
@@ -21,7 +21,7 @@ impl Semaphore {
         Self {
             inner: unsafe {
                 UPSafeCell::new(SemaphoreInner {
-                    count: res_count as usize,
+                    count: res_count as isize,
                     wait_queue: VecDeque::new(),
                 })
             },

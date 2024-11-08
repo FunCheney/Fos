@@ -1,3 +1,4 @@
+use super::process::ProcessControlBlock;
 use super::{fetch_task, TaskStatus};
 use super::{TaskContext, TaskControlBlock, __switch};
 use crate::{sync::UPSafeCell, trap::TrapContext};
@@ -79,6 +80,10 @@ pub fn current_task() -> Option<Arc<TaskControlBlock>> {
     PROCESSOR.exclusive_access().current()
 }
 
+pub fn current_process() -> Arc<ProcessControlBlock> {
+    current_task().unwrap().process.upgrade().unwrap()
+}
+
 pub fn current_user_token() -> usize {
     let task = current_task().unwrap();
     let token = task.get_user_token();
@@ -96,6 +101,9 @@ pub fn current_trap_cx_user_va() -> usize {
     current_task()
         .unwrap()
         .inner_exclusive_access()
+        .res
+        .as_ref()
+        .unwrap()
         .trap_cx_user_va()
 }
 

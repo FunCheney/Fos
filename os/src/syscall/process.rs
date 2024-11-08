@@ -2,12 +2,12 @@
 
 use crate::fs::{open_file, OpenFlags};
 use crate::mm::translated_ref;
-use crate::task::pid2task;
+use crate::task::pid2process;
 use crate::{
     mm::{translated_refmut, translated_str},
     task::{
-        add_task, current_task, current_user_token, exit_current_and_run_next,
-        suspend_current_and_run_next, SignalAction, SignalFlags, MAX_SIG,
+        current_process, current_task, current_user_token, exit_current_and_run_next,
+        suspend_current_and_run_next, SignalFlags,
     },
     timer::get_time_ms,
 };
@@ -32,21 +32,21 @@ pub fn sys_get_time() -> isize {
 }
 
 pub fn sys_getpid() -> isize {
-    current_task().unwrap().pid.0 as isize
+    current_task().unwrap().process.upgrade().unwrap().getpid() as isize
 }
 
 pub fn sys_fork() -> isize {
-    let current_task = current_task().unwrap();
-    let new_task = current_task.fork();
-    let new_pid = new_task.pid.0;
+    let current_process = current_process();
+    let new_process = current_process.fork();
+    let new_pid = new_process.getpid();
+
     // modify trap context of new_task, because it returns immediately after switching
-    let trap_cx = new_task.inner_exclusive_access().get_trap_cx();
+    let new_process_inner = new_process.inner_exclusive_access();
+    let task = new_process_inner.tasks[0].as_ref().unwrap();
+    let trap_cx = task.inner_exclusive_access().get_trap_cx();
     // we do not have to move to next instruction since we have done it before
     // for child process, fork returns 0
     trap_cx.x[10] = 0;
-    // add new task to scheduler
-    add_task(new_task);
-    // 子进程的 id
     new_pid as isize
 }
 
@@ -71,9 +71,11 @@ pub fn sys_exec(path: *const u8, mut args: *const usize) -> isize {
         // 将文件的数据全部读到一个 all_data 向量中
         // 就可以从向量 all_data 中拿到应用中的 ELF 数据，当解析完毕并创建完应用地址空间后该向量将会被回收。
         let all_data = app_inode.read_all();
-        let task = current_task().unwrap();
-        task.exec(all_data.as_slice(), args_vec);
-        0
+        let process = current_process();
+        let argc = args_vec.len();
+        process.exec(all_data.as_slice(), args_vec);
+        // return argc because cx.x[10] will be covered with it later
+        argc as isize
     } else {
         -1
     }
@@ -81,7 +83,7 @@ pub fn sys_exec(path: *const u8, mut args: *const usize) -> isize {
 
 pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
     //trace!("kernel: sys_waitpid");
-    let task = current_task().unwrap();
+    let task = current_process();
     // find a child process
 
     // ---- access current PCB exclusively
@@ -89,21 +91,21 @@ pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
     if !inner
         .children
         .iter()
-        .any(|p| pid == -1 || pid as usize == p.get_pid())
+        .any(|p| pid == -1 || pid as usize == p.getpid())
     {
         return -1;
         // ---- release current PCB
     }
     let pair = inner.children.iter().enumerate().find(|(_, p)| {
         // ++++ temporarily access child PCB exclusively
-        p.inner_exclusive_access().is_zombie() && (pid == -1 || pid as usize == p.get_pid())
+        p.inner_exclusive_access().is_zombie && (pid == -1 || pid as usize == p.getpid())
         // ++++ release child PCB
     });
     if let Some((idx, _)) = pair {
         let child = inner.children.remove(idx);
         // confirm that child will be deallocated after being removed from children list
         assert_eq!(Arc::strong_count(&child), 1);
-        let found_pid = child.get_pid();
+        let found_pid = child.getpid();
         // ++++ temporarily access child PCB exclusively
         let exit_code = child.inner_exclusive_access().exit_code;
         // ++++ release child PCB
@@ -116,14 +118,9 @@ pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
 }
 
 pub fn sys_kill(pid: usize, signum: i32) -> isize {
-    if let Some(task) = pid2task(pid) {
+    if let Some(process) = pid2process(pid) {
         if let Some(flag) = SignalFlags::from_bits(1 << signum) {
-            // insert the signal if legal
-            let mut task_ref = task.inner_exclusive_access();
-            if task_ref.signals.contains(flag) {
-                return -1;
-            }
-            task_ref.signals.insert(flag);
+            process.inner_exclusive_access().signals |= flag;
             0
         } else {
             -1
@@ -133,7 +130,8 @@ pub fn sys_kill(pid: usize, signum: i32) -> isize {
     }
 }
 
-pub fn sys_sigprocmask(mask: u32) -> isize {
+/*
+ * pub fn sys_sigprocmask(mask: u32) -> isize {
     if let Some(task) = current_task() {
         let mut inner = task.inner_exclusive_access();
         let old_mask = inner.signal_mask;
@@ -199,3 +197,4 @@ pub fn sys_sigaction(
         -1
     }
 }
+*/

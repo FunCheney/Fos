@@ -19,6 +19,7 @@ impl Default for SignalAction {
 
 #[derive(Clone)]
 pub struct SignalActions {
+    #[allow(unused)]
     pub table: [SignalAction; MAX_SIG + 1],
 }
 

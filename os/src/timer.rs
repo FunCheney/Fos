@@ -1,12 +1,13 @@
 //! RISC-V timer-related functionality
 
+use core::cmp::Ordering;
+
 use crate::config::CLOCK_FREQ;
 use crate::sbi::set_timer;
 use crate::sync::UPSafeCell;
 use crate::task::{wakeup_task, TaskControlBlock};
 use alloc::collections::binary_heap::BinaryHeap;
 use alloc::sync::Arc;
-use alloc::task;
 use lazy_static::*;
 use riscv::register::time;
 
@@ -38,7 +39,7 @@ pub struct TimerCondVar {
     /// 等待事件的超时时间
     pub expire_ms: usize,
     /// 等待它的线程集合
-    pub task: Arc<TaskControlBlack>,
+    pub task: Arc<TaskControlBlock>,
 }
 
 impl PartialEq for TimerCondVar {
@@ -87,7 +88,7 @@ pub fn checker_timer() {
     let current_time = get_time_ms();
     let mut timers = TIMERS.exclusive_access();
     while let Some(timer) = timers.peek() {
-        if timer.expire_time <= current_time {
+        if timer.expire_ms <= current_time {
             wakeup_task(Arc::clone(&timer.task));
             timers.pop();
         } else {

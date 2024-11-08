@@ -1,6 +1,7 @@
 use alloc::collections::BTreeMap;
 use alloc::{collections::vec_deque::VecDeque, sync::Arc};
 
+use super::process::ProcessControlBlock;
 use super::task::TaskStatus;
 use super::TaskControlBlock;
 
@@ -41,13 +42,10 @@ impl TaskManager {
     }
 }
 
-// 实例化 TASK_MANAGER
 lazy_static! {
-    // 全局的任务管理器
     pub static ref TASK_MANAGER: UPSafeCell<TaskManager> =
         unsafe { UPSafeCell::new(TaskManager::new()) };
-    // 全局 PID-进程控制块映射
-    pub static ref PID2TCB: UPSafeCell<BTreeMap<usize, Arc<ProcessControlBlock>>> =
+    pub static ref PID2PCB: UPSafeCell<BTreeMap<usize, Arc<ProcessControlBlock>>> =
         unsafe { UPSafeCell::new(BTreeMap::new()) };
 }
 

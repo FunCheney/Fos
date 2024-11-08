@@ -22,7 +22,6 @@ mod loader;
 mod logging;
 mod mm;
 mod sbi;
-mod stack_trace;
 mod sync;
 pub mod syscall;
 mod task;

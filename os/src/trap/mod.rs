@@ -4,10 +4,12 @@
 /// 在批处理操作系统初始化时，我们需要修改 stvec 寄存器来指向正确的 Trap 处理入口点。
 mod context;
 
-use crate::config::{TRAMPOLINE, TRAP_CONTEXT};
-use crate::task::{check_signals_error_of_current, current_add_signal, current_trap_cx,
-                  current_user_token, exit_current_and_run_next, handle_signals, SignalFlags};
-use crate::timer::set_next_trigger;
+use crate::config::TRAMPOLINE;
+use crate::task::{
+    check_signals_error_of_current, current_add_signal, current_trap_cx, current_trap_cx_user_va,
+    current_user_token, exit_current_and_run_next, SignalFlags,
+};
+use crate::timer::{checker_timer, set_next_trigger};
 use crate::{syscall::syscall, task::suspend_current_and_run_next};
 use core::arch::{asm, global_asm};
 use log::{debug, error, info};
@@ -104,6 +106,7 @@ pub fn trap_handler() -> ! {
             //panic!("[kernel] not continue!");
             // 当触发一个 S 特权级时钟中断，首先重置计时器
             set_next_trigger();
+            checker_timer();
             // 调用函数
             suspend_current_and_run_next();
         }
@@ -118,7 +121,7 @@ pub fn trap_handler() -> ! {
     }
     // handle signals (handle the sent signal)
     //println!("[K] trap_handler:: handle_signals");
-    handle_signals();
+    //handle_signals();
 
     // check error signals (if error then exit)
     if let Some((errno, msg)) = check_signals_error_of_current() {
@@ -137,7 +140,7 @@ pub fn trap_return() -> ! {
     // 准备好 __restore 需要两个参数：分别是 Trap 上下文在应用地址空间中的虚拟地址和要继续执行的应用地址空间的 token
     // 最后我们需要跳转到 __restore ，以执行：切换到应用地址空间、从 Trap 上下文中恢复通用寄存器、 sret 继续执行应用。
     // 它的关键在于如何找到 __restore 在内核/应用地址空间中共同的虚拟地址。
-    let trap_cx_ptr = TRAP_CONTEXT;
+    let trap_cx_user_va = current_trap_cx_user_va();
     let user_trap = current_user_token();
     extern "C" {
         fn __alltraps();
@@ -156,7 +159,7 @@ pub fn trap_return() -> ! {
             "fence.i",
             "jr {restore_va}",     // jump to new addr of _restore asm function
             restore_va = in(reg) restore_va,
-            in("a0") trap_cx_ptr,     // a0 = virt addr of trap Context
+            in("a0") trap_cx_user_va,     // a0 = virt addr of trap Context
             in("a1") user_trap,       // a1 = phy addr of user page table
             options(noreturn)
         );

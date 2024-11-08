@@ -9,8 +9,11 @@ const SYSCALL_WRITE: usize = 64;
 const SYSCALL_EXIT: usize = 93;
 const SYSCALL_YIELD: usize = 124;
 const SYSCALL_KILL: usize = 129;
+#[allow(unused)]
 const SYSCALL_SIGACTION: usize = 134;
+#[allow(unused)]
 const SYSCALL_SIGPROCMASK: usize = 135;
+#[allow(unused)]
 const SYSCALL_SIGRETURN: usize = 139;
 const SYSCALL_GET_TIME: usize = 169;
 const SYSCALL_GETPID: usize = 172;
@@ -35,7 +38,6 @@ mod process;
 mod sync;
 mod thread;
 
-use crate::task::SignalAction;
 use fs::*;
 use process::*;
 use sync::*;
@@ -52,13 +54,13 @@ pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
         SYSCALL_EXIT => sys_exit(args[0] as i32),
         SYSCALL_YIELD => sys_yield(),
         SYSCALL_KILL => sys_kill(args[0], args[1] as i32),
-        SYSCALL_SIGACTION => sys_sigaction(
-            args[0] as i32,
-            args[1] as *const SignalAction,
-            args[2] as *mut SignalAction,
-        ),
-        SYSCALL_SIGPROCMASK => sys_sigprocmask(args[0] as u32),
-        SYSCALL_SIGRETURN => sys_sigreturn(),
+        // SYSCALL_SIGACTION => sys_sigaction(
+        //     args[0] as i32,
+        //     args[1] as *const SignalAction,
+        //     args[2] as *mut SignalAction,
+        // ),
+        //SYSCALL_SIGPROCMASK => sys_sigprocmask(args[0] as u32),
+        //SYSCALL_SIGRETURN => sys_sigreturn(),
         SYSCALL_GET_TIME => sys_get_time(),
         SYSCALL_GETPID => sys_getpid(),
         SYSCALL_FORK => sys_fork(),

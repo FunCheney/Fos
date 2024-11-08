@@ -1,13 +1,14 @@
 //! Implemention of ['pidAllocator']
 
-use crate::{
-    config::{KERNEL_STACK_SIZE, PAGE_SIZE, TRAMPOLINE},
-    mm::{MapPermission, VirtAddr, KERNEL_SPACE},
-};
-use alloc::vec::Vec;
-use lazy_static::*;
-
+use super::ProcessControlBlock;
+use crate::config::{KERNEL_STACK_SIZE, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT_BASE, USER_STACK_SIZE};
+use crate::mm::{MapPermission, PhysPageNum, VirtAddr, KERNEL_SPACE};
 use crate::sync::UPSafeCell;
+use alloc::{
+    sync::{Arc, Weak},
+    vec::Vec,
+};
+use lazy_static::*;
 
 pub struct RecycleAllocator {
     current: usize,
@@ -41,7 +42,7 @@ impl RecycleAllocator {
     }
 }
 
-azy_static! {
+lazy_static! {
     static ref PID_ALLOCATOR: UPSafeCell<RecycleAllocator> =
         unsafe { UPSafeCell::new(RecycleAllocator::new()) };
     static ref KSTACK_ALLOCATOR: UPSafeCell<RecycleAllocator> =
@@ -59,7 +60,7 @@ impl Drop for PidHandle {
 }
 
 pub fn pid_alloc() -> PidHandle {
-    PID_ALLOCATOR.exclusive_access().alloc()
+    PidHandle(PID_ALLOCATOR.exclusive_access().alloc())
 }
 
 /// 每个 pid 的进程，获取到其内核栈的栈顶与栈底
@@ -69,9 +70,7 @@ pub fn kernel_stack_position(app_id: usize) -> (usize, usize) {
     (bottom, top)
 }
 /// 定义内核堆栈
-pub struct KernelStack {
-    pid: usize,
-}
+pub struct KernelStack(pub usize);
 
 pub fn kstack_alloc() -> KernelStack {
     let kstack_id = KSTACK_ALLOCATOR.exclusive_access().alloc();

@@ -55,6 +55,7 @@ pub struct ProcessControlBlockInner {
     /// 一个进程内也有多个不同的信号量
     /// 将信号量表加入到进程控制块中
     pub semaphore_list: Vec<Option<Arc<Semaphore>>>,
+    /// 条件变量也是一种资源
     pub condvar_list: Vec<Option<Arc<Condvar>>>,
 }
 
