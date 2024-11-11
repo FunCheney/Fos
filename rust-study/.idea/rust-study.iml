@@ -14,6 +14,8 @@
       <sourceFolder url="file://$MODULE_DIR$/rust_by_example/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/rust_by_example/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/minigrep/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rust-atomics-and-locks/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rust-atomics-and-locks/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/httpie/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/thumbor/target" />
