@@ -1,16 +1,14 @@
 use std::thread;
+use std::thread::JoinHandle;
 
 fn main() {
     let numbers = Vec::from_iter(0..=1000);
-    // 这里如果是 空数组会 panic
-    // let numbers = Vec::new();
-
-    let t = thread::spawn(move || {
+    let t: JoinHandle<usize> = thread::Builder::new().name("test".to_string())
+        .spawn(move || {
         let len = numbers.len();
-        let sum = numbers.iter().sum::<usize>();
-        // 将闭包中的返回给发送给主函数
+        let sum: usize= numbers.iter().sum();
         sum / len
-    });
+    }).unwrap();
     // 通过 join 方法得到返回值
     let average = t.join().unwrap();
     println!("average {}", average);
