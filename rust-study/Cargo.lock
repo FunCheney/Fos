@@ -1968,6 +1968,7 @@ name = "rust-atomics-and-locks"
 version = "0.1.0"
 dependencies = [
  "atomic-wait",
+ "libc",
 ]
 
 [[package]]
